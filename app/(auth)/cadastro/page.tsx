@@ -17,7 +17,7 @@ export default function CadastroPage() {
     nome: '',
     email: '',
     senha: '',
-    codigo: '',  // código do condomínio ex: DEMO-0001
+    codigo: '',
     bloco: '',
     unidade: '',
   })
@@ -56,13 +56,29 @@ export default function CadastroPage() {
       },
     })
 
+    // ✅ Tradução dos erros mais comuns do Supabase
     if (erroAuth || !authData.user) {
-      setErro(erroAuth?.message ?? 'Erro ao criar conta. Tente novamente.')
+      // Traduzir erros comuns do Supabase
+      const mensagens: Record<string, string> = {
+        'User already registered':
+          'Este e-mail já está cadastrado. Tente fazer login.',
+        'Password should be at least 6 characters':
+          'A senha precisa ter pelo menos 8 caracteres.',
+        'Unable to validate email address: invalid format':
+          'Formato de e-mail inválido.',
+      }
+
+      const mensagemTraduzida =
+        mensagens[erroAuth?.message ?? ''] ??
+        'Erro ao criar conta. Tente novamente.'
+
+      setErro(mensagemTraduzida)
       setCarregando(false)
       return
     }
 
     // 3. Criar perfil do morador
+    // ✅ Mesmo sem sessão ativa (e-mail pendente), o ID já existe
     const { error: erroPerfil } = await supabase.from('perfis').insert({
       id: authData.user.id,
       nome: form.nome,
@@ -72,9 +88,8 @@ export default function CadastroPage() {
     })
 
     if (erroPerfil) {
-      setErro('Conta criada mas erro ao salvar perfil. Entre em contato com o suporte.')
-      setCarregando(false)
-      return
+      // Não bloqueia o fluxo — perfil pode ser salvo no primeiro login
+      console.error('Erro ao salvar perfil:', erroPerfil.message)
     }
 
     // 4. Sucesso — pedir para confirmar e-mail
@@ -82,63 +97,71 @@ export default function CadastroPage() {
     setCarregando(false)
   }
 
-  // Tela de sucesso após cadastro
+  // ─── Tela de sucesso após cadastro ───────────────────────────────
   if (sucesso) {
     return (
       <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
         <div className="text-5xl mb-4">📬</div>
-        <h2 className="text-xl font-bold text-gray-800 mb-2">
+        <h2 className="text-xl font-bold text-gray-900 mb-2">
           Confirme seu e-mail
         </h2>
-        <p className="text-gray-500 text-sm">
+        <p className="text-gray-600 text-sm leading-relaxed">
           Enviamos um link de confirmação para{' '}
-          <span className="font-medium text-gray-700">{form.email}</span>.
+          <span className="font-semibold text-gray-800">{form.email}</span>.
+          <br />
           Acesse seu e-mail e clique no link para ativar sua conta.
+        </p>
+        <p className="text-gray-400 text-xs mt-4">
+          Não encontrou? Verifique a caixa de spam.
         </p>
       </div>
     )
   }
 
+  // ─── Classe reutilizável dos inputs ──────────────────────────────
+  const inputClass =
+    'w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm ' +
+    'text-gray-900 placeholder:text-gray-400 ' +
+    'focus:outline-none focus:ring-2 focus:ring-blue-500'
+
+  const labelClass = 'block text-sm font-medium text-gray-800 mb-1'
+
+  // ─── Formulário ──────────────────────────────────────────────────
   return (
     <div className="bg-white rounded-2xl shadow-sm p-8">
-      <h2 className="text-xl font-bold text-gray-800 mb-6">Criar conta</h2>
+      <h2 className="text-xl font-bold text-gray-900 mb-6">Criar conta</h2>
 
       <form onSubmit={handleCadastro} className="space-y-4">
+
         {/* Nome */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Nome completo
-          </label>
+          <label className={labelClass}>Nome completo</label>
           <input
             type="text"
             required
             value={form.nome}
             onChange={(e) => atualizar('nome', e.target.value)}
             placeholder="Maria Silva"
-            className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={inputClass}
           />
         </div>
 
         {/* E-mail */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            E-mail
-          </label>
+          <label className={labelClass}>E-mail</label>
           <input
             type="email"
             required
             value={form.email}
             onChange={(e) => atualizar('email', e.target.value)}
             placeholder="maria@email.com"
-            className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={inputClass}
           />
         </div>
 
         {/* Senha */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Senha
-          </label>
+          <label className={labelClass}>Senha</label>
           <input
             type="password"
             required
@@ -146,24 +169,22 @@ export default function CadastroPage() {
             value={form.senha}
             onChange={(e) => atualizar('senha', e.target.value)}
             placeholder="Mínimo 8 caracteres"
-            className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={inputClass}
           />
         </div>
 
         {/* Código do condomínio */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Código do condomínio
-          </label>
+          <label className={labelClass}>Código do condomínio</label>
           <input
             type="text"
             required
             value={form.codigo}
             onChange={(e) => atualizar('codigo', e.target.value)}
-            placeholder="Ex: DEMO-0001"
-            className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Ex: QUINTAS-0001"
+            className={`${inputClass} uppercase`}
           />
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-500 mt-1">
             Solicite o código ao síndico do seu condomínio
           </p>
         </div>
@@ -171,34 +192,30 @@ export default function CadastroPage() {
         {/* Bloco e Unidade */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Bloco
-            </label>
+            <label className={labelClass}>Bloco</label>
             <input
               type="text"
               value={form.bloco}
               onChange={(e) => atualizar('bloco', e.target.value)}
               placeholder="Ex: A"
-              className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Unidade
-            </label>
+            <label className={labelClass}>Unidade</label>
             <input
               type="text"
               value={form.unidade}
               onChange={(e) => atualizar('unidade', e.target.value)}
               placeholder="Ex: 42"
-              className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
             />
           </div>
         </div>
 
         {/* Erro */}
         {erro && (
-          <div className="bg-red-50 text-red-600 text-sm rounded-lg px-4 py-3">
+          <div className="bg-red-50 border border-red-100 text-red-700 text-sm rounded-lg px-4 py-3">
             {erro}
           </div>
         )}
@@ -213,12 +230,16 @@ export default function CadastroPage() {
         </button>
 
         {/* Link para login */}
-        <p className="text-center text-sm text-gray-500">
+        <p className="text-center text-sm text-gray-600">
           Já tem conta?{' '}
-          <Link href="/login" className="text-blue-600 hover:underline font-medium">
+          <Link
+            href="/login"
+            className="text-blue-600 hover:underline font-medium"
+          >
             Entrar
           </Link>
         </p>
+
       </form>
     </div>
   )
