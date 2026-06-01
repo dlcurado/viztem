@@ -11,12 +11,12 @@ export default function CadastroPage() {
 
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
-  const [sucesso, setSucesso] = useState(false)
 
   const [form, setForm] = useState({
     nome: '',
     email: '',
     senha: '',
+    telefone: '',
     codigo: '',
     bloco: '',
     unidade: '',
@@ -27,12 +27,29 @@ export default function CadastroPage() {
     setErro(null)
   }
 
+  const mensagensErro: Record<string, string> = {
+    'User already registered':
+      'Este e-mail já está cadastrado. Tente fazer login.',
+    'Password should be at least 6 characters':
+      'A senha precisa ter pelo menos 8 caracteres.',
+    'Unable to validate email address: invalid format':
+      'Formato de e-mail inválido.',
+    'Email rate limit exceeded':
+      'Muitos cadastros em pouco tempo. Aguarde alguns minutos.',
+    'signup_disabled':
+      'Cadastros temporariamente desativados. Tente mais tarde.',
+  }
+
+  function traduzirErro(mensagem: string): string {
+    return mensagensErro[mensagem] ?? 'Erro ao criar conta. Tente novamente.'
+  }
+
   async function handleCadastro(e: React.FormEvent) {
     e.preventDefault()
     setCarregando(true)
     setErro(null)
 
-    // 1. Validar o código do condomínio
+    // ── 1. Validar código do condomínio ───────────────────────
     const { data: condominio, error: erroCond } = await supabase
       .from('condominios')
       .select('id, nome')
@@ -45,80 +62,34 @@ export default function CadastroPage() {
       return
     }
 
-    // 2. Criar conta no Supabase Auth
-    const { data: authData, error: erroAuth } = await supabase.auth.signUp({
+    // ── 2. Criar conta com todos os dados em metadata ─────────
+    // O trigger on_auth_user_created lê raw_user_meta_data
+    // e insere o perfil completo em public.perfis automaticamente
+    const { error: erroAuth } = await supabase.auth.signUp({
       email: form.email,
       password: form.senha,
       options: {
         data: {
           nome: form.nome,
+          telefone: form.telefone || null,
+          condominio_id: condominio.id,
+          bloco: form.bloco || null,
+          unidade: form.unidade || null,
         },
       },
     })
 
-    // ✅ Tradução dos erros mais comuns do Supabase
-    if (erroAuth || !authData.user) {
-      // Traduzir erros comuns do Supabase
-      const mensagens: Record<string, string> = {
-        'User already registered':
-          'Este e-mail já está cadastrado. Tente fazer login.',
-        'Password should be at least 6 characters':
-          'A senha precisa ter pelo menos 8 caracteres.',
-        'Unable to validate email address: invalid format':
-          'Formato de e-mail inválido.',
-      }
-
-      const mensagemTraduzida =
-        mensagens[erroAuth?.message ?? ''] ??
-        'Erro ao criar conta. Tente novamente.'
-
-      setErro(mensagemTraduzida)
+    if (erroAuth) {
+      setErro(traduzirErro(erroAuth.message))
       setCarregando(false)
       return
     }
 
-    // 3. Criar perfil do morador
-    // ✅ Mesmo sem sessão ativa (e-mail pendente), o ID já existe
-    const { error: erroPerfil } = await supabase.from('perfis').insert({
-      id: authData.user.id,
-      nome: form.nome,
-      condominio_id: condominio.id,
-      bloco: form.bloco,
-      unidade: form.unidade,
-    })
-
-    if (erroPerfil) {
-      // Não bloqueia o fluxo — perfil pode ser salvo no primeiro login
-      console.error('Erro ao salvar perfil:', erroPerfil.message)
-    }
-
-    // 4. Sucesso — pedir para confirmar e-mail
-    setSucesso(true)
-    setCarregando(false)
+    // ── 3. Trigger cuidou do perfil — redireciona pro feed ────
+    router.push('/feed')
   }
 
-  // ─── Tela de sucesso após cadastro ───────────────────────────────
-  if (sucesso) {
-    return (
-      <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
-        <div className="text-5xl mb-4">📬</div>
-        <h2 className="text-xl font-bold text-gray-900 mb-2">
-          Confirme seu e-mail
-        </h2>
-        <p className="text-gray-600 text-sm leading-relaxed">
-          Enviamos um link de confirmação para{' '}
-          <span className="font-semibold text-gray-800">{form.email}</span>.
-          <br />
-          Acesse seu e-mail e clique no link para ativar sua conta.
-        </p>
-        <p className="text-gray-400 text-xs mt-4">
-          Não encontrou? Verifique a caixa de spam.
-        </p>
-      </div>
-    )
-  }
-
-  // ─── Classe reutilizável dos inputs ──────────────────────────────
+  // ─── Classes reutilizáveis ────────────────────────────────
   const inputClass =
     'w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm ' +
     'text-gray-900 placeholder:text-gray-400 ' +
@@ -126,7 +97,6 @@ export default function CadastroPage() {
 
   const labelClass = 'block text-sm font-medium text-gray-800 mb-1'
 
-  // ─── Formulário ──────────────────────────────────────────────────
   return (
     <div className="bg-white rounded-2xl shadow-sm p-8">
       <h2 className="text-xl font-bold text-gray-900 mb-6">Criar conta</h2>
@@ -173,6 +143,26 @@ export default function CadastroPage() {
           />
         </div>
 
+        {/* WhatsApp */}
+        <div>
+          <label className={labelClass}>
+            WhatsApp <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="tel"
+            required
+            value={form.telefone}
+            onChange={(e) => atualizar('telefone', e.target.value)}
+            placeholder="(11) 99999-9999"
+            className={inputClass}
+          />
+          <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+            📱 Seu número será compartilhado apenas com pessoas interessadas
+            nos seus anúncios. Não usamos para spam ou marketing.
+            Conforme a LGPD, você pode solicitar a remoção a qualquer momento.
+          </p>
+        </div>
+
         {/* Código do condomínio */}
         <div>
           <label className={labelClass}>Código do condomínio</label>
@@ -181,7 +171,7 @@ export default function CadastroPage() {
             required
             value={form.codigo}
             onChange={(e) => atualizar('codigo', e.target.value)}
-            placeholder="Ex: QUINTAS-0001"
+            placeholder="Ex: CONDOMINIO-1234"
             className={`${inputClass} uppercase`}
           />
           <p className="text-xs text-gray-500 mt-1">
@@ -215,7 +205,8 @@ export default function CadastroPage() {
 
         {/* Erro */}
         {erro && (
-          <div className="bg-red-50 border border-red-100 text-red-700 text-sm rounded-lg px-4 py-3">
+          <div className="bg-red-50 border border-red-100 text-red-700
+                          text-sm rounded-lg px-4 py-3">
             {erro}
           </div>
         )}
@@ -224,7 +215,9 @@ export default function CadastroPage() {
         <button
           type="submit"
           disabled={carregando}
-          className="w-full bg-blue-600 text-white font-medium rounded-lg py-2.5 text-sm hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-blue-600 text-white font-medium rounded-lg
+                     py-2.5 text-sm hover:bg-blue-700 transition
+                     disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {carregando ? 'Criando conta...' : 'Criar conta'}
         </button>
