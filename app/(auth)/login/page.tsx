@@ -1,23 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
-  const [callbackUrl, setCallbackUrl] = useState('/feed')
+  const searchParams = useSearchParams()
+  const callbackUrl = searchParams.get('callbackUrl') ?? '/feed'
   const supabase = createClient()
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    setCallbackUrl(params.get('callbackUrl') ?? '/feed')
-  }, [])
 
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
-
   const [form, setForm] = useState({
     email: '',
     senha: '',
@@ -116,5 +111,13 @@ export default function LoginPage() {
         </p>
       </form>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <LoginForm />
+    </Suspense>
   )
 }

@@ -27,21 +27,19 @@ export async function proxy(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser()
 
-    const { pathname, search } = request.nextUrl
-    const callbackUrl = `${pathname}${search}`
+    const { pathname } = request.nextUrl
 
     // --- Definição de tipos de rota ---
-    const isLandingRoute = pathname === '/'
-    const isPublicAdRoute = /^\/anuncio\/[^/]+\/?$/.test(pathname)
+    const isPubliclyViewableRoute = pathname === '/'
     const isAuthRoute = pathname === '/login' || pathname === '/cadastro'
-    const isProtectedRoute = !isLandingRoute && !isAuthRoute && !isPublicAdRoute
+    const isProtectedRoute = !isPubliclyViewableRoute && !isAuthRoute
 
     // --- Lógica de Redirecionamento ---
 
     // 1. Se o usuário está autenticado
     if (user) {
       // Se o usuário logado tentar acessar a landing ou as rotas de auth, redireciona para o feed
-      if (isLandingRoute || isAuthRoute) {
+      if (pathname === '/' || isAuthRoute) {
         return NextResponse.redirect(new URL('/feed', request.url))
       }
       return NextResponse.next()
@@ -49,15 +47,12 @@ export async function proxy(request: NextRequest) {
 
     // 2. Se o usuário NÃO está autenticado
     if (!user) {
-      // Se for landing, adiç��o de anúncio ou rota de auth, permite o acesso
-      if (isLandingRoute || isAuthRoute || isPublicAdRoute) {
-        return NextResponse.next()
-      }
       if (isProtectedRoute) {
         const redirectUrl = new URL('/login', request.url)
-        redirectUrl.searchParams.set('callbackUrl', callbackUrl)
+        redirectUrl.searchParams.set('callbackUrl', pathname)
         return NextResponse.redirect(redirectUrl)
       }
+      return NextResponse.next()
     }
 
     // Caso padrão, permite o acesso (deve ser raro chegar aqui)
