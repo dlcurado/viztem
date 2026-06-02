@@ -164,7 +164,7 @@ export default function EditarAnuncioPage({ params }: Props) {
       // Pré-preencher o formulário
       setForm({
         titulo: anuncio.titulo,
-        descricao: anuncio.descricao,
+        descricao: anuncio.descricao ?? '',
         categoria_id: anuncioRaw.categoria_id,
         tipo_preco: anuncio.tipo_preco,
         preco: anuncio.preco?.toString() ?? '',

@@ -1,15 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Metadata } from 'next'
-import DeleteAnuncioButton from '@/components/DeleteAnuncioButton'
 import BotaoCompartilhar from '@/components/BotaoCompartilhar'
+import DeleteAnuncioButton from '@/components/DeleteAnuncioButton' // Importado do seu arquivo
 
 // ─── Tipagem ──────────────────────────────────────────────────
+// Mantendo a tipagem do seu arquivo original, com pequenas correções para o join
 export type AnuncioDetalhado = {
   id: string
   titulo: string
-  descricao: string
+  descricao: string | null // Pode ser null
   preco: number | null
   tipo_preco: 'fixo' | 'negociavel' | 'gratis'
   status: string
@@ -17,8 +19,8 @@ export type AnuncioDetalhado = {
   expira_em: string | null
   bloco: string | null
   unidade: string | null
-  categoria: { nome: string; icone: string } | null
-  autor: {
+  categoria: { nome: string; icone: string | null } | null // icone pode ser null
+  autor: { // Renomeado de 'perfis' para 'autor' para corresponder ao alias no select
     id: string
     nome: string
     telefone: string | null
@@ -57,7 +59,7 @@ export async function generateMetadata({
   params: { id: string }
 }): Promise<Metadata> {
   const supabase = await createClient()
-  const { id } = await Promise.resolve(params)
+  const { id } = params
 
   const { data } = await supabase
     .from('anuncios')
@@ -118,25 +120,30 @@ export default async function AnuncioDetalhePage({
   params: { id: string }
 }) {
   const supabase = await createClient()
-  const { id: anuncioId } = await Promise.resolve(params)
+  const { id: anuncioId } = params
 
-  // Verifica sessão — sem redirecionar (página semi-pública)
+  // O proxy.ts já garante que o usuário está autenticado para chegar aqui.
+  // Se não estiver, ele já foi redirecionado para /login.
   const {
     data: { user },
-    error: authError,
+    error: authError, // authError não deve ocorrer se o user existir
   } = await supabase.auth.getUser()
 
-  // Busca perfil apenas se logado
-  const perfilUsuarioInteressado = user
-    ? await supabase
-        .from('perfis')
-        .select('id, condominio_id, nome, telefone, bloco, unidade')
-        .eq('id', user.id)
-        .single()
-        .then(({ data, error: perfilError }) => (perfilError ? null : data))
-    : null
+  // Se por alguma falha o user não existir aqui, redireciona para login.
+  // Isso é uma salvaguarda, mas o proxy.ts deve evitar que chegue aqui.
+  if (!user) {
+    redirect(`/login?callbackUrl=/anuncio/${anuncioId}`);
+  }
 
-  // Busca o anúncio — sem filtro de condomínio para permitir acesso público
+  // Busca perfil do usuário logado
+  const perfilUsuarioLogado = await supabase
+    .from('perfis')
+    .select('id, condominio_id, nome, telefone, bloco, unidade')
+    .eq('id', user.id)
+    .single()
+    .then(({ data, error: perfilError }) => (perfilError ? null : data))
+
+  // Busca o anúncio
   const { data: anuncioRaw, error: anuncioError } = await supabase
     .from('anuncios')
     .select(`
@@ -149,54 +156,54 @@ export default async function AnuncioDetalhePage({
     .eq('id', anuncioId)
     .single()
 
-  // Não redirecionar nem retornar 404 para bots/anônimos.
-  // Se a consulta falhar ou não retornar dados, criamos um fallback
-  // leve para manter a página em HTTP 200 e exibir uma UI amigável.
-  const anuncio: AnuncioDetalhado = anuncioRaw
-    ? {
-        id: anuncioRaw.id,
-        titulo: anuncioRaw.titulo,
-        descricao: anuncioRaw.descricao,
-        preco: anuncioRaw.preco,
-        tipo_preco: anuncioRaw.tipo_preco ?? 'fixo',
-        status: anuncioRaw.status,
-        criado_em: anuncioRaw.criado_em,
-        expira_em: anuncioRaw.expira_em,
-        bloco: anuncioRaw.bloco,
-        unidade: anuncioRaw.unidade,
-        categoria: Array.isArray(anuncioRaw.categorias)
-          ? anuncioRaw.categorias[0] ?? null
-          : anuncioRaw.categorias ?? null,
-        autor: (() => {
-          const p = Array.isArray(anuncioRaw.perfis)
-            ? anuncioRaw.perfis[0]
-            : anuncioRaw.perfis
-          return p
-            ? { id: p.id, nome: p.nome, telefone: p.telefone,
-                bloco: p.bloco, unidade: p.unidade }
-            : null
-        })(),
-        fotos: (anuncioRaw.fotos_anuncio ?? []).sort(
-          (a: any, b: any) => a.ordem - b.ordem
-        ),
-      }
-    : {
-        id: anuncioId,
-        titulo: 'Anúncio não encontrado',
-        descricao: 'Descrição não disponível.',
-        preco: null,
-        tipo_preco: 'fixo',
-        status: 'indisponivel',
-        criado_em: new Date().toISOString(),
-        expira_em: null,
-        bloco: null,
-        unidade: null,
-        categoria: null,
-        autor: null,
-        fotos: [],
-      }
+  // Se o anúncio não for encontrado, redireciona para o feed (ou 404)
+  if (anuncioError || !anuncioRaw) {
+    redirect('/feed') // Ou para uma página 404 personalizada
+  }
 
-  const isOwner = !!user && !!anuncio.autor && user.id === anuncio.autor.id
+  // Mapeia para o tipo AnuncioDetalhado
+  const anuncio: AnuncioDetalhado = {
+    id: anuncioRaw.id,
+    titulo: anuncioRaw.titulo,
+    descricao: anuncioRaw.descricao,
+    preco: anuncioRaw.preco,
+    tipo_preco: anuncioRaw.tipo_preco as 'fixo' | 'negociavel' | 'gratis', // Type assertion
+    status: anuncioRaw.status,
+    criado_em: anuncioRaw.criado_em,
+    expira_em: anuncioRaw.expira_em,
+    bloco: anuncioRaw.bloco,
+    unidade: anuncioRaw.unidade,
+    categoria: Array.isArray(anuncioRaw.categorias)
+      ? anuncioRaw.categorias[0] ?? null
+      : anuncioRaw.categorias ?? null,
+    autor: (() => {
+      const p = Array.isArray(anuncioRaw.perfis)
+        ? anuncioRaw.perfis[0]
+        : anuncioRaw.perfis
+      return p
+        ? { id: p.id, nome: p.nome, telefone: p.telefone,
+            bloco: p.bloco, unidade: p.unidade }
+        : null
+    })(),
+    fotos: (anuncioRaw.fotos_anuncio ?? []).sort(
+      (a: any, b: any) => a.ordem - b.ordem
+    ),
+  }
+
+  const isOwner = user.id === anuncio.autor?.id
+
+  const fotosOrdenadas = anuncio.fotos.sort((a, b) => a.ordem - b.ordem)
+  const fotoCapa = fotosOrdenadas[0]?.url ?? '/vercel.svg' // Fallback para imagem padrão
+
+  const telVendedor = anuncio.autor?.telefone?.replace(/\D/g, '') || ''
+  const mensagemWhatsApp = encodeURIComponent(
+    `Olá! Tenho interesse no seu anúncio *"${anuncio.titulo}"* no Viztem! 🏘️\n\n` +
+    `Meu nome é *${perfilUsuarioLogado?.nome ?? 'um morador'}*` +
+    `${perfilUsuarioLogado?.bloco ? `, Bloco ${perfilUsuarioLogado.bloco}` : ''}` +
+    `${perfilUsuarioLogado?.unidade ? `, Apto ${perfilUsuarioLogado.unidade}` : ''}.\n\n` +
+    `Pode me chamar neste número: *${perfilUsuarioLogado?.telefone ?? 'não informado'}*`
+  )
+  const whatsappLink = `https://wa.me/55${telVendedor}?text=${mensagemWhatsApp}`
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -204,8 +211,8 @@ export default async function AnuncioDetalhePage({
       <header className="bg-white shadow-sm py-4 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link
-            href={user ? '/feed' : '/login'}
-            className="text-blue-600 hover:text-blue-800 flex items-center"
+            href="/feed" // Sempre volta para o feed, pois o usuário está logado
+            className="text-emerald-600 hover:text-emerald-800 flex items-center"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1"
               viewBox="0 0 20 20" fill="currentColor">
@@ -214,7 +221,7 @@ export default async function AnuncioDetalhePage({
                    01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
                 clipRule="evenodd" />
             </svg>
-            {user ? 'Voltar ao Feed' : 'Fazer Login'}
+            Voltar ao Feed
           </Link>
 
           {isOwner && (
@@ -236,10 +243,10 @@ export default async function AnuncioDetalhePage({
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
 
           {/* Foto */}
-          <div className="relative w-full h-80 bg-gray-200 flex items-center justify-center">
+          <div className="relative w-full h-64 sm:h-80 bg-gray-200 flex items-center justify-center">
             {anuncio.fotos.length > 0 ? (
               <Image
-                src={anuncio.fotos[0].url}
+                src={fotoCapa}
                 alt={anuncio.titulo}
                 fill
                 className="object-cover"
@@ -315,39 +322,18 @@ export default async function AnuncioDetalhePage({
 
             {/* Botões de ação */}
             <div className="pt-4 border-t border-gray-100 space-y-3">
-
-              {!user ? (
-                // Não autenticado → convida para login
-                <Link
-                  href={`/login?callbackUrl=/anuncio/${anuncio.id}`}
+              {anuncio.autor?.telefone ? (
+                <a
+                  href={whatsappLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-full flex items-center justify-center gap-2
-                             bg-blue-600 hover:bg-blue-700 text-white
-                             py-3 rounded-md text-base font-semibold transition-colors"
-                >
-                  Entrar para ver o contato do vendedor
-                </Link>
-              ) : anuncio.autor?.telefone ? (
-                (() => {
-                  const telVendedor = anuncio.autor.telefone.replace(/\D/g, '')
-                  const mensagem = encodeURIComponent(
-                    `Olá! Tenho interesse no seu anúncio *"${anuncio.titulo}"* no Viztem! 🏘️\n\n` +
-                    `Meu nome é *${perfilUsuarioInteressado?.nome ?? 'um morador'}*` +
-                    `${perfilUsuarioInteressado?.bloco ? `, Bloco ${perfilUsuarioInteressado.bloco}` : ''}` +
-                    `${perfilUsuarioInteressado?.unidade ? `, Apto ${perfilUsuarioInteressado.unidade}` : ''}.\n\n` +
-                    `Pode me chamar neste número: *${perfilUsuarioInteressado?.telefone ?? 'não informado'}*`
-                  )
-                  return (
-                    <a
-                      href={`https://wa.me/55${telVendedor}?text=${mensagem}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full flex items-center justify-center gap-2
                                  bg-green-500 hover:bg-green-600 text-white
                                  py-3 rounded-md text-lg font-semibold transition-colors"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-                        fill="currentColor" className="w-5 h-5">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                    fill="currentColor" className="w-5 h-5">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967
                                  -.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164
                                  -.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475
                                  -.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606
@@ -359,17 +345,15 @@ export default async function AnuncioDetalhePage({
                                  .709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118
                                  .571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413
                                  -.074-.124-.272-.198-.57-.347z"/>
-                        <path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.558 4.121 1.532 5.856
+                    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.558 4.121 1.532 5.856
                                  L.057 23.25a.75.75 0 00.916.932l5.453-1.43A11.945 11.945 0
                                  0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.694
                                  9.694 0 01-4.983-1.378l-.358-.214-3.706.972.99-3.614-.234-.373
                                  A9.712 9.712 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75
                                  6.615 21.75 12 17.385 21.75 12 21.75z"/>
-                      </svg>
-                      Tenho Interesse
-                    </a>
-                  )
-                })()
+                  </svg>
+                  Tenho Interesse
+                </a>
               ) : (
                 <div className="w-full flex items-center justify-center gap-2
                                 bg-gray-100 text-gray-400 py-3 rounded-md text-sm">
