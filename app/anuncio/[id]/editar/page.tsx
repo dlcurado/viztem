@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import type { AnuncioDetalhado } from '@/app/(app)/anuncio/[id]/page'
+import type { AnuncioDetalhado } from '@/app/anuncio/[id]/page'
 import { use } from 'react';
 
 type Props = { params: Promise<{ id: string }> }
