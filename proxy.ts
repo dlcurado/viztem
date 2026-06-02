@@ -2,9 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function proxy(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+  let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,25 +25,21 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // Verificar sessão do usuário
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
+  const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
-  // Rotas públicas — não precisa de login
   const rotasPublicas = ['/login', '/cadastro']
   const ehRotaPublica = rotasPublicas.some((rota) =>
     pathname.startsWith(rota)
   )
 
-  // Usuário não autenticado tentando acessar rota protegida
-  if (!user && !ehRotaPublica) {
+  // ✅ Libera /anuncio/* para bots lerem o Open Graph
+  const ehRotaAnuncio = pathname.startsWith('/anuncio/')
+
+  if (!user && !ehRotaPublica && !ehRotaAnuncio) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Usuário autenticado tentando acessar login ou cadastro
   if (user && ehRotaPublica) {
     return NextResponse.redirect(new URL('/feed', request.url))
   }
@@ -55,11 +49,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Intercepta todas as rotas exceto:
-     * - arquivos estáticos (_next, imagens, fontes)
-     * - favicon
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
