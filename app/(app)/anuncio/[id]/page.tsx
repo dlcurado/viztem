@@ -93,15 +93,14 @@ export async function generateMetadata({
     .join(' · ')
 
   return {
-    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
-    title: `${data.titulo} · Viztem`,
+    title: data.titulo,
     description: descricaoOG,
     openGraph: {
       title: data.titulo,
       description: descricaoOG,
       type: 'website',
       locale: 'pt_BR',
-      siteName: 'Viztem',
+      siteName: 'VizTem',
       ...(fotoCapa && {
         images: [
           {
