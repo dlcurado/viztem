@@ -28,15 +28,12 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
-  const rotasPublicas = ['/login', '/cadastro']
+  const rotasPublicas = ['/', '/login', '/cadastro', '/anuncio/']
   const ehRotaPublica = rotasPublicas.some((rota) =>
     pathname.startsWith(rota)
   )
 
-  // ✅ Libera /anuncio/* para bots lerem o Open Graph
-  const ehRotaAnuncio = pathname.startsWith('/anuncio/')
-
-  if (!user && !ehRotaPublica && !ehRotaAnuncio) {
+  if (!user && !ehRotaPublica) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 

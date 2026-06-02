@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Metadata } from 'next'
@@ -122,7 +121,10 @@ export default async function AnuncioDetalhePage({
   const { id: anuncioId } = await Promise.resolve(params)
 
   // Verifica sessão — sem redirecionar (página semi-pública)
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
 
   // Busca perfil apenas se logado
   const perfilUsuarioInteressado = user
@@ -131,7 +133,7 @@ export default async function AnuncioDetalhePage({
         .select('id, condominio_id, nome, telefone, bloco, unidade')
         .eq('id', user.id)
         .single()
-        .then(({ data }) => data)
+        .then(({ data, error: perfilError }) => (perfilError ? null : data))
     : null
 
   // Busca o anúncio — sem filtro de condomínio para permitir acesso público
