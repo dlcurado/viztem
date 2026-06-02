@@ -1,13 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
   const router = useRouter()
+  const [callbackUrl, setCallbackUrl] = useState('/feed')
   const supabase = createClient()
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    setCallbackUrl(params.get('callbackUrl') ?? '/feed')
+  }, [])
 
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -38,7 +44,7 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/feed')
+    router.push(callbackUrl)
     router.refresh()
   }
 

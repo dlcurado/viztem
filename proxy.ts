@@ -27,45 +27,36 @@ export async function proxy(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser()
 
-    const { pathname } = request.nextUrl
+    const { pathname, search } = request.nextUrl
+    const callbackUrl = `${pathname}${search}`
 
     // --- Definição de tipos de rota ---
-    // Rotas que podem ser acessadas por não autenticados (landing e anúncios públicos)
-    const isPubliclyViewableRoute = pathname === '/' || pathname.startsWith('/anuncio/')
-    // Rotas de autenticação (login, cadastro)
+    const isLandingRoute = pathname === '/'
+    const isPublicAdRoute = /^\/anuncio\/[^/]+\/?$/.test(pathname)
     const isAuthRoute = pathname === '/login' || pathname === '/cadastro'
-    // Rotas protegidas (feed, novo-anuncio, etc.)
-    const isProtectedRoute = !isPubliclyViewableRoute && !isAuthRoute;
-
+    const isProtectedRoute = !isLandingRoute && !isAuthRoute && !isPublicAdRoute
 
     // --- Lógica de Redirecionamento ---
 
     // 1. Se o usuário está autenticado
     if (user) {
-      // Se o usuário logado tentar acessar a landing, login ou cadastro, redireciona para o feed
-      if (isPubliclyViewableRoute || isAuthRoute) {
+      // Se o usuário logado tentar acessar a landing ou as rotas de auth, redireciona para o feed
+      if (isLandingRoute || isAuthRoute) {
         return NextResponse.redirect(new URL('/feed', request.url))
       }
-      // Para todas as outras rotas (incluindo /anuncio/[id] e outras rotas protegidas), permite o acesso
       return NextResponse.next()
     }
 
     // 2. Se o usuário NÃO está autenticado
     if (!user) {
-      // Se for uma rota publicamente visível (apenas a landing), permite o acesso
-      if (isPubliclyViewableRoute) {
+      // Se for landing, adiç��o de anúncio ou rota de auth, permite o acesso
+      if (isLandingRoute || isAuthRoute || isPublicAdRoute) {
         return NextResponse.next()
       }
-      // Se for uma rota de autenticação (login/cadastro), permite o acesso
-      if (isAuthRoute) {
-        return NextResponse.next()
-      }
-      // Se for uma rota protegida (incluindo /anuncio/[id]), redireciona para o login
       if (isProtectedRoute) {
-        // Adiciona o callbackUrl para redirecionar de volta após o login
-        const redirectUrl = new URL('/login', request.url);
-        redirectUrl.searchParams.set('callbackUrl', pathname);
-        return NextResponse.redirect(redirectUrl);
+        const redirectUrl = new URL('/login', request.url)
+        redirectUrl.searchParams.set('callbackUrl', callbackUrl)
+        return NextResponse.redirect(redirectUrl)
       }
     }
 
