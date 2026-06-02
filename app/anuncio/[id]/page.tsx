@@ -146,37 +146,54 @@ export default async function AnuncioDetalhePage({
     .eq('id', anuncioId)
     .single()
 
-  if (anuncioError || !anuncioRaw) notFound()
+  // Não redirecionar nem retornar 404 para bots/anônimos.
+  // Se a consulta falhar ou não retornar dados, criamos um fallback
+  // leve para manter a página em HTTP 200 e exibir uma UI amigável.
+  const anuncio: AnuncioDetalhado = anuncioRaw
+    ? {
+        id: anuncioRaw.id,
+        titulo: anuncioRaw.titulo,
+        descricao: anuncioRaw.descricao,
+        preco: anuncioRaw.preco,
+        tipo_preco: anuncioRaw.tipo_preco ?? 'fixo',
+        status: anuncioRaw.status,
+        criado_em: anuncioRaw.criado_em,
+        expira_em: anuncioRaw.expira_em,
+        bloco: anuncioRaw.bloco,
+        unidade: anuncioRaw.unidade,
+        categoria: Array.isArray(anuncioRaw.categorias)
+          ? anuncioRaw.categorias[0] ?? null
+          : anuncioRaw.categorias ?? null,
+        autor: (() => {
+          const p = Array.isArray(anuncioRaw.perfis)
+            ? anuncioRaw.perfis[0]
+            : anuncioRaw.perfis
+          return p
+            ? { id: p.id, nome: p.nome, telefone: p.telefone,
+                bloco: p.bloco, unidade: p.unidade }
+            : null
+        })(),
+        fotos: (anuncioRaw.fotos_anuncio ?? []).sort(
+          (a: any, b: any) => a.ordem - b.ordem
+        ),
+      }
+    : {
+        id: anuncioId,
+        titulo: 'Anúncio não encontrado',
+        descricao: 'Descrição não disponível.',
+        preco: null,
+        tipo_preco: 'fixo',
+        status: 'indisponivel',
+        criado_em: new Date().toISOString(),
+        expira_em: null,
+        bloco: null,
+        unidade: null,
+        categoria: null,
+        autor: null,
+        fotos: [],
+      }
 
-  const anuncio: AnuncioDetalhado = {
-    id: anuncioRaw.id,
-    titulo: anuncioRaw.titulo,
-    descricao: anuncioRaw.descricao,
-    preco: anuncioRaw.preco,
-    tipo_preco: anuncioRaw.tipo_preco ?? 'fixo',
-    status: anuncioRaw.status,
-    criado_em: anuncioRaw.criado_em,
-    expira_em: anuncioRaw.expira_em,
-    bloco: anuncioRaw.bloco,
-    unidade: anuncioRaw.unidade,
-    categoria: Array.isArray(anuncioRaw.categorias)
-      ? anuncioRaw.categorias[0] ?? null
-      : anuncioRaw.categorias ?? null,
-    autor: (() => {
-      const p = Array.isArray(anuncioRaw.perfis)
-        ? anuncioRaw.perfis[0]
-        : anuncioRaw.perfis
-      return p
-        ? { id: p.id, nome: p.nome, telefone: p.telefone,
-            bloco: p.bloco, unidade: p.unidade }
-        : null
-    })(),
-    fotos: (anuncioRaw.fotos_anuncio ?? []).sort(
-      (a: any, b: any) => a.ordem - b.ordem
-    ),
-  }
-
-  const isOwner = user?.id === anuncio.autor?.id
+  const isOwner = !!user && !!anuncio.autor && user.id === anuncio.autor.id
 
   return (
     <div className="min-h-screen bg-gray-50">
