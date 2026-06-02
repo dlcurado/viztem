@@ -88,6 +88,7 @@ export async function generateMetadata({
     title: data.titulo,
     description: descricaoOG,
     openGraph: {
+      url: `${process.env.NEXT_PUBLIC_APP_URL}/anuncio/${id}`,
       title: data.titulo,
       description: descricaoOG,
       type: 'website',
