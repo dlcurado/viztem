@@ -150,6 +150,8 @@ export default async function AnuncioDetalhePage({
 
   // Se o anúncio não for encontrado, redireciona para o feed (ou 404)
   if (anuncioError || !anuncioRaw) {
+    console.error('[Feed] Anúncio não encontrado:', anuncioError?.message)
+    console.error(`[Feed] Anúncio: ${anuncioRaw}`)
     redirect('/feed') // Ou para uma página 404 personalizada
   }
 
