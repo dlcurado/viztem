@@ -72,7 +72,7 @@ export default async function FeedPage({
   const { count: userAnunciosCount, error: countError } = await supabase
     .from('anuncios')
     .select('id', { count: 'exact' }) // Seleciona apenas o ID e pede a contagem exata
-    .eq('perfil_id', user.id)
+    .eq('usuario_id', user.id)
     .eq('condominio_id', condominioId) // Garante que a contagem é do condomínio atual
     .eq('status', 'ativo'); // Apenas anúncios ativos contam para o limite
 
