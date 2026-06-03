@@ -30,7 +30,8 @@ export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl
 
     // --- Definição de tipos de rota ---
-    const isPubliclyViewableRoute = pathname === '/'
+    // Rota pública: landing e anúncios públicos
+    const isPubliclyViewableRoute = pathname === '/' || pathname.startsWith('/anuncio/')
     const isAuthRoute = pathname === '/login' || pathname === '/cadastro'
     const isProtectedRoute = !isPubliclyViewableRoute && !isAuthRoute
 
@@ -38,7 +39,7 @@ export async function proxy(request: NextRequest) {
 
     // 1. Se o usuário está autenticado
     if (user) {
-      // Se o usuário logado tentar acessar a landing ou as rotas de auth, redireciona para o feed
+      // Usuário autenticado: apenas '/' e rotas de auth redirecionam para /feed
       if (pathname === '/' || isAuthRoute) {
         return NextResponse.redirect(new URL('/feed', request.url))
       }
@@ -47,6 +48,11 @@ export async function proxy(request: NextRequest) {
 
     // 2. Se o usuário NÃO está autenticado
     if (!user) {
+      // Permite acesso a rotas públicas (landing e /anuncio/*) e páginas de auth
+      if (isPubliclyViewableRoute || isAuthRoute) {
+        return NextResponse.next()
+      }
+      // Rotas protegidas redirecionam direto para /login com callbackUrl = pathname
       if (isProtectedRoute) {
         const redirectUrl = new URL('/login', request.url)
         redirectUrl.searchParams.set('callbackUrl', pathname)

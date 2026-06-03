@@ -76,7 +76,7 @@ export async function generateMetadata({
   if (!data) return { title: 'Anúncio não encontrado' }
 
   const fotos = [...(data.fotos_anuncio ?? [])].sort(
-    (a: any, b: any) => a.ordem - b.ordem
+    (a, b) => a.ordem - b.ordem
   )
   const fotoCapa = fotos[0]?.url ?? null
 
@@ -178,7 +178,7 @@ export default async function AnuncioDetalhePage({
         : null
     })(),
     fotos: (anuncioRaw.fotos_anuncio ?? []).sort(
-      (a: any, b: any) => a.ordem - b.ordem
+      (a, b) => a.ordem - b.ordem
     ),
   }
 
@@ -203,7 +203,7 @@ export default async function AnuncioDetalhePage({
       <header className="bg-white shadow-sm py-4 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link
-            href="/feed" // Sempre volta para o feed, pois o usuário está logado
+            href={user ? '/feed' : `/login?callbackUrl=/anuncio/${anuncio.id}`}
             className="text-emerald-600 hover:text-emerald-800 flex items-center"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1"
@@ -216,7 +216,7 @@ export default async function AnuncioDetalhePage({
             Voltar ao Feed
           </Link>
 
-          {isOwner && (
+          {user && isOwner && (
             <div className="flex space-x-2">
               <Link
                 href={`/anuncio/${anuncio.id}/editar`}
@@ -314,7 +314,16 @@ export default async function AnuncioDetalhePage({
 
             {/* Botões de ação */}
             <div className="pt-4 border-t border-gray-100 space-y-3">
-              {anuncio.autor?.telefone ? (
+              {!user ? (
+                <Link
+                  href={`/login?callbackUrl=/anuncio/${anuncio.id}`}
+                  className="w-full inline-flex items-center justify-center gap-2
+                             bg-emerald-500 hover:bg-emerald-600 text-white
+                             py-3 rounded-md text-lg font-semibold transition-colors"
+                >
+                  Faça login para ver o contato
+                </Link>
+              ) : anuncio.autor?.telefone ? (
                 <a
                   href={whatsappLink}
                   target="_blank"
@@ -326,14 +335,14 @@ export default async function AnuncioDetalhePage({
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
                     <path d="M12 2a1 1 0 011 1v7h7a1 1 0 110 2h-7v7a1 1 0 11-2 0v-7H4a1 1 0 110-2h7V3a1 1 0 011-1z" />
                   </svg>
-                    Tenho Interesse
-                  </a>
-                ) : (
-                  <div className="w-full flex items-center justify-center gap-2
-                                  bg-gray-100 text-gray-400 py-3 rounded-md text-sm">
-                    📵 Contato não disponível
-                  </div>
-                )}
+                  Tenho Interesse
+                </a>
+              ) : (
+                <div className="w-full flex items-center justify-center gap-2
+                                bg-gray-100 text-gray-400 py-3 rounded-md text-sm">
+                  📵 Contato não disponível
+                </div>
+              )}
 
               {/* Compartilhar — visível para todos */}
               <BotaoCompartilhar
@@ -344,7 +353,6 @@ export default async function AnuncioDetalhePage({
                 descricao={anuncio.descricao}
                 variant="completo"
               />
-
             </div>
           </div>
         </div>
