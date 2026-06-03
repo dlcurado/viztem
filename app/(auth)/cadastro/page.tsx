@@ -97,6 +97,10 @@ export default function CadastroPage() {
 
   const labelClass = 'block text-sm font-medium text-gray-800 mb-1'
 
+  const buttonClass = 'w-full bg-blue-600 text-white font-medium rounded-lg ' +
+                     'py-2.5 text-sm hover:bg-blue-700 transition ' +
+                     'disabled:opacity-50 disabled:cursor-not-allowed'
+
   return (
     <div className="bg-white rounded-2xl shadow-sm p-8">
       <h2 className="text-xl font-bold text-gray-900 mb-6">Criar conta</h2>
@@ -215,9 +219,7 @@ export default function CadastroPage() {
         <button
           type="submit"
           disabled={carregando}
-          className="w-full bg-blue-600 text-white font-medium rounded-lg
-                     py-2.5 text-sm hover:bg-blue-700 transition
-                     disabled:opacity-50 disabled:cursor-not-allowed"
+          className="{buttonClass}"
         >
           {carregando ? 'Criando conta...' : 'Criar conta'}
         </button>

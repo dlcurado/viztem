@@ -96,6 +96,11 @@ export default async function FeedPage({
     .eq('status', 'ativo')
     .order('criado_em', { ascending: false })
 
+  // Conta quantos anúncios o usuário logado já tem
+  // Precisa ser antes do filtro de categoria para contar todos os anúncios do usuário, não apenas os filtrados
+  const { data: anunciosUsuarioLogado} = await query.eq('perfil_id', user.id)
+  const countAnunciosRestantes = 5 - (anunciosUsuarioLogado?.length ?? 0)
+
   // Aplica filtro de categoria se houver
   if (categoriaFiltro) {
     // Busca o id da categoria pelo slug
@@ -111,6 +116,8 @@ export default async function FeedPage({
   }
 
   const { data: anuncios, error: anunciosError } = await query
+
+  
 
   if (anunciosError) {
     console.error('[Feed] Erro ao buscar anúncios:', anunciosError.message)
@@ -168,6 +175,7 @@ export default async function FeedPage({
             ? (perfil.condominios[0]?.nome ?? '')
             : (perfil.condominios?.nome ?? '')
         }
+        countAnunciosRestantes={countAnunciosRestantes}
       />
 
       <main className="max-w-5xl mx-auto px-4 py-6">
