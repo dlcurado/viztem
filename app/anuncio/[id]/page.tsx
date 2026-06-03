@@ -59,7 +59,8 @@ export async function generateMetadata({
   params: { id: string }
 }): Promise<Metadata> {
   const supabase = await createClient()
-  const { id } = params
+  const { id } = await Promise.resolve(params)
+
 
   const { data } = await supabase
     .from('anuncios')
@@ -120,7 +121,8 @@ export default async function AnuncioDetalhePage({
   params: { id: string }
 }) {
   const supabase = await createClient()
-  const { id: anuncioId } = params
+  const { id: anuncioId } = await Promise.resolve(params)
+
 
   const {
     data: { user },
