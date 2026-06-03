@@ -2,6 +2,7 @@
 'use client';
 
 import { logEvent } from '@/lib/analytics';
+import Link from 'next/link'
 
 interface WhatsAppContactButtonProps {
   user: any; // Você pode substituir 'any' pelo tipo do usuário que você tem no seu projeto
@@ -15,7 +16,14 @@ export function WhatsAppContactButton({ user, anuncioId, whatsappLink, userHasPh
     return (
       <div className="w-full flex items-center justify-center gap-2
                       bg-gray-100 text-gray-400 py-3 rounded-md text-sm">
-        🔒 Faça login para ver o contato
+        <Link
+                  href={`/login?callbackUrl=/anuncio/${anuncio.id}`}
+                  className="w-full inline-flex items-center justify-center gap-2
+                             bg-emerald-500 hover:bg-emerald-600 text-white
+                             py-3 rounded-md text-lg font-semibold transition-colors"
+                >
+                  Faça login para ver o contato
+                </Link>
       </div>
     );
   }

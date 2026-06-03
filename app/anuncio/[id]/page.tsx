@@ -5,7 +5,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import BotaoCompartilhar from '@/components/BotaoCompartilhar'
 import DeleteAnuncioButton from '@/components/DeleteAnuncioButton' // Importado do seu arquivo
-import { logEvent } from '@/lib/analytics';
 import { PageViewLogger } from '@/components/analytics/PageViewLogger'
 import { WhatsAppContactButton } from '@/components/analytics/WhatsAppContactButton'
 
