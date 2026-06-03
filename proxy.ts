@@ -37,7 +37,14 @@ export async function proxy(request: NextRequest) {
 
     // --- Lógica de Redirecionamento ---
 
-    // 1. Se o usuário está autenticado
+    console.log(`Middleware: User ${user ? 'authenticated' : 'not authenticated'}, 
+      Path: ${pathname}`);
+
+    console.log(`Route Types: Publicly Viewable: ${isPubliclyViewableRoute},
+       Auth Route: ${isAuthRoute}, 
+       Protected Route: ${isProtectedRoute}`);
+    
+       // 1. Se o usuário está autenticado
     if (user) {
       // Usuário autenticado: apenas '/' e rotas de auth redirecionam para /feed
       if (pathname === '/' || isAuthRoute) {
