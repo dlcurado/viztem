@@ -5,6 +5,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import BotaoCompartilhar from '@/components/BotaoCompartilhar'
 import DeleteAnuncioButton from '@/components/DeleteAnuncioButton' // Importado do seu arquivo
+import { logEvent } from '@/lib/analytics';
+import { PageViewLogger } from '@/components/analytics/PageViewLogger'
 
 // ─── Tipagem ──────────────────────────────────────────────────
 // Mantendo a tipagem do seu arquivo original, com pequenas correções para o join
@@ -60,7 +62,6 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const supabase = await createClient()
   const { id } = await Promise.resolve(params)
-
 
   const { data: anuncioRaw, error: anuncioError} = await supabase
     .from('anuncios')
@@ -128,7 +129,6 @@ export default async function AnuncioDetalhePage({
 }) {
   const supabase = await createClient()
   const { id: anuncioId } = await Promise.resolve(params)
-
 
   const {
     data: { user },
@@ -222,6 +222,7 @@ export default async function AnuncioDetalhePage({
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <PageViewLogger page="ad_details" ad_id={anuncio.id} />
       {/* Header */}
       <header className="bg-white shadow-sm py-4 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
@@ -349,6 +350,7 @@ export default async function AnuncioDetalhePage({
               ) : anuncio.autor?.telefone ? (
                 <a
                   href={whatsappLink}
+                  onClick={() => logEvent('ad_contact_click', { ad_id: anuncio.id })}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full flex items-center justify-center gap-2

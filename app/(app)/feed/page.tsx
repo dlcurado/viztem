@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import CardAnuncio from '@/components/CardAnuncio'
 import FiltroCategorias from '@/components/FiltroCategorias'
 import FeedHeader from '@/components/FeedHeader'
+import { FirstFeedViewLogger } from '@/components/analytics/FirstFeedViewLogger'
 
 // Tipagem do anúncio enriquecido
 export type AnuncioComDetalhes = {
@@ -33,7 +34,7 @@ export default async function FeedPage({
   searchParams: Promise<{ categoria?: string }>
 }) {
   const supabase = await createClient()
-
+  
   // 1. Verifica sessão
   const {
     data: { user },
@@ -66,6 +67,8 @@ export default async function FeedPage({
 
   const condominioId = perfil.condominio_id
   const { categoria: categoriaFiltro } = await searchParams
+
+  
 
   // 3. Monta query de anúncios
   let query = supabase
@@ -168,6 +171,7 @@ export default async function FeedPage({
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <FirstFeedViewLogger />
       <FeedHeader
         nomeUsuario={perfil.nome}
         nomeCondominio={

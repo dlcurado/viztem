@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { logEvent } from '@/lib/analytics';
 
 export default function CadastroPage() {
   const router = useRouter()
@@ -83,6 +84,12 @@ export default function CadastroPage() {
       setErro(traduzirErro(erroAuth.message))
       setCarregando(false)
       return
+    } else {
+      // Sucesso no cadastro
+      // Você precisará obter o condominio_id aqui, talvez do perfil do usuário recém-criado
+      // ou de um campo no formulário de cadastro.
+      
+      logEvent('signup_completed', { condominio_id: condominio.id });
     }
 
     // ── 3. Trigger cuidou do perfil — redireciona pro feed ────

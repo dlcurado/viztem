@@ -1,5 +1,6 @@
-import Link from 'next/link'
 import type { Metadata } from 'next'
+import { PageViewLogger } from '@/components/analytics/PageViewLogger';
+import { LandingCTAsClient } from '@/components/landing/LandingCTAsClient'; // Importe o novo Client Component para CTAs
 
 export const metadata: Metadata = {
   title: 'VizTem · A vitrine de classificados do seu condomínio',
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
 export default function LandingPage() {
   return (
     <main className="min-h-screen bg-white text-gray-900 font-sans">
-
+      <PageViewLogger page="landing" />
       {/* ── HERO ─────────────────────────────────────────────── */}
       <section className="bg-gradient-to-br from-emerald-600 to-emerald-800 text-white">
         <div className="max-w-3xl mx-auto px-6 py-20 flex flex-col items-center text-center gap-6">
@@ -38,20 +39,8 @@ export default function LandingPage() {
             e acesso direto pelo link. Sem instalar nada.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 mt-2">
-            <Link
-              href="/cadastro"
-              className="px-8 py-4 bg-white text-emerald-700 font-bold rounded-xl text-base hover:bg-emerald-50 transition"
-            >
-              Quero participar
-            </Link>
-            <Link
-              href="/login"
-              className="px-8 py-4 border border-white/40 text-white font-medium rounded-xl text-base hover:bg-white/10 transition"
-            >
-              Já tenho conta
-            </Link>
-          </div>
+          {/* Os botões de CTA agora são um Client Component */}
+          <LandingCTAsClient />
         </div>
       </section>
 
@@ -256,18 +245,8 @@ export default function LandingPage() {
             Cadastre-se agora com o código do seu condomínio e comece a usar
             o VizTem hoje. Gratuito para moradores.
           </p>
-          <Link
-            href="/cadastro"
-            className="px-10 py-4 bg-white text-emerald-700 font-bold rounded-xl text-base hover:bg-emerald-50 transition"
-          >
-            Criar minha conta gratuita
-          </Link>
-          <Link
-            href="/login"
-            className="text-emerald-200 text-sm hover:text-white transition underline underline-offset-4"
-          >
-            Já tenho conta? Entrar →
-          </Link>
+          {/* Os botões de CTA final também são um Client Component */}
+          <LandingCTAsClient finalCta={true} />
         </div>
       </section>
 

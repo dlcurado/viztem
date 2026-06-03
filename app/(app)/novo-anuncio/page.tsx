@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
+import { logEvent } from '@/lib/analytics';
 
 type Categoria = {
   id: string
@@ -190,6 +191,13 @@ export default function NovoAnuncioPage() {
         )
       }
     }
+
+    // Sucesso na criação
+    logEvent('ad_created', {
+      categoria: form.categoria_id,
+      num_fotos: fotos.length,
+      condominio_id: perfil.condominio_id,
+    });
 
     // 4. Sucesso — voltar para o feed
     router.push('/feed')

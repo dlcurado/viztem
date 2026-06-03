@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { logEvent } from '@/lib/analytics';
 
 function LoginForm() {
   const router = useRouter()
@@ -28,7 +29,7 @@ function LoginForm() {
     setCarregando(true)
     setErro(null)
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: data, error: error } = await supabase.auth.signInWithPassword({
       email: form.email,
       password: form.senha,
     })
@@ -39,6 +40,18 @@ function LoginForm() {
       return
     }
 
+    // Sucesso no login
+    // Para obter o condominio_id, você pode precisar buscar o perfil do usuário
+    // ou armazená-lo na sessão/cookies após o login.
+    let condominio_id = 'desconhecido';
+    if (data.user) {
+      // Exemplo: buscar o perfil para obter o condominio_id
+      const { data: perfilData } = await supabase.from('perfis').select('condominio_id').eq('id', data.user.id).single();
+      if (perfilData) {
+        condominio_id = perfilData.condominio_id;
+      }
+    }
+    logEvent('login_completed', { condominio_id });
     router.push(callbackUrl)
     router.refresh()
   }
