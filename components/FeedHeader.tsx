@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link'
+import { logEvent } from '@/lib/analytics'; // Importar logEvent para o onClick
 
 type Props = {
   nomeUsuario: string
@@ -36,6 +39,9 @@ export default function FeedHeader({ nomeUsuario, nomeCondominio, countAnunciosR
             e.preventDefault(); // Impede a navegação se o limite for atingido
             // Opcional: mostrar um toast ou alerta para o usuário
             alert('Você atingiu o limite de 5 anúncios ativos. Edite ou exclua um anúncio existente para publicar um novo.');
+          } else {
+            // Logar o evento de clique no botão de publicar
+            logEvent('click_publicar_anuncio', { status: 'permitido' });
           }
         }}
       >
