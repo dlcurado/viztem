@@ -75,7 +75,7 @@ export async function generateMetadata({
     .single()
 
   console.log('params:', params)
-  console.log('params.id:', params.id)
+  console.log('id:', id)
   console.error('[Feed] Anúncio não encontrado:', anuncioError!.message)
   console.error(`[Feed] Anúncio: ${anuncioRaw}`)
 
