@@ -51,21 +51,10 @@ function LoginForm() {
         condominio_id = perfilData.condominio_id;
       }
     }
-    logEvent('login_completed', { condominio_id });
+    logEvent('login_completed', { condominio_id: condominio_id });
     router.push(callbackUrl)
     router.refresh()
   }
-
-  const inputClass =
-    'w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm ' +
-    'text-gray-900 placeholder:text-gray-400 ' +
-    'focus:outline-none focus:ring-2 focus:ring-blue-500'
-
-  const labelClass = 'block text-sm font-medium text-gray-800 mb-1'
-
-  const buttonClass = 'w-full bg-blue-600 text-white font-medium rounded-lg ' +
-                     'py-2.5 text-sm hover:bg-blue-700 transition ' +
-                     'disabled:opacity-50 disabled:cursor-not-allowed'
 
   return (
     <div className="bg-white rounded-2xl shadow-sm p-8">
@@ -74,7 +63,7 @@ function LoginForm() {
       <form onSubmit={handleLogin} className="space-y-4">
         {/* E-mail */}
         <div>
-          <label className="{labelClass}">
+          <label className="block text-sm font-medium text-gray-800 mb-1">
             E-mail
           </label>
           <input
@@ -83,13 +72,14 @@ function LoginForm() {
             value={form.email}
             onChange={(e) => atualizar('email', e.target.value)}
             placeholder="maria@email.com"
-            className="{inputClass}"
+            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm 
+              text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         {/* Senha */}
         <div>
-          <label className="{labelClass}">
+          <label className="block text-sm font-medium text-gray-800 mb-1">
             Senha
           </label>
           <input
@@ -98,7 +88,8 @@ function LoginForm() {
             value={form.senha}
             onChange={(e) => atualizar('senha', e.target.value)}
             placeholder="Sua senha"
-            className="{inputClass}"
+            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm 
+              text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <div className="text-right mt-1">
             <Link
@@ -121,7 +112,7 @@ function LoginForm() {
         <button
           type="submit"
           disabled={carregando}
-          className="{buttonClass}"
+          className="w-full bg-blue-600 text-white font-medium rounded-lg py-2.5 text-sm hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {carregando ? 'Entrando...' : 'Entrar'}
         </button>

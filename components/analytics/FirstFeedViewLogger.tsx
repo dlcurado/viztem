@@ -20,7 +20,7 @@ export function FirstFeedViewLogger() {
           if (perfilData) {
             condominio_id = perfilData.condominio_id;
           }
-          await logEvent('first_feed_view', { condominio_id });
+          await logEvent('first_feed_view', { condominio_id: condominio_id });
           localStorage.setItem('hasSeenFeed', 'true'); // Marca como visto
         }
       }

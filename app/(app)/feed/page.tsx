@@ -68,7 +68,20 @@ export default async function FeedPage({
   const condominioId = perfil.condominio_id
   const { categoria: categoriaFiltro } = await searchParams
 
-  
+  // --- NOVA QUERY PARA CONTAR ANÚNCIOS DO USUÁRIO ---
+  const { count: userAnunciosCount, error: countError } = await supabase
+    .from('anuncios')
+    .select('id', { count: 'exact' }) // Seleciona apenas o ID e pede a contagem exata
+    .eq('perfil_id', user.id)
+    .eq('condominio_id', condominioId) // Garante que a contagem é do condomínio atual
+    .eq('status', 'ativo'); // Apenas anúncios ativos contam para o limite
+
+  if (countError) {
+    console.error('[Feed] Erro ao contar anúncios do usuário:', countError.message);
+    // Decida como tratar o erro, talvez assumir 0 ou um valor padrão
+  }
+
+  const countAnunciosRestantes = 5 - (userAnunciosCount ?? 0);
 
   // 3. Monta query de anúncios
   let query = supabase
@@ -98,12 +111,7 @@ export default async function FeedPage({
     .eq('condominio_id', condominioId)
     .eq('status', 'ativo')
     .order('criado_em', { ascending: false })
-
-  // Conta quantos anúncios o usuário logado já tem
-  // Precisa ser antes do filtro de categoria para contar todos os anúncios do usuário, não apenas os filtrados
-  const { data: anunciosUsuarioLogado} = await query.eq('perfil_id', user.id)
-  const countAnunciosRestantes = 5 - (anunciosUsuarioLogado?.length ?? 0)
-
+  
   // Aplica filtro de categoria se houver
   if (categoriaFiltro) {
     // Busca o id da categoria pelo slug
@@ -119,8 +127,6 @@ export default async function FeedPage({
   }
 
   const { data: anuncios, error: anunciosError } = await query
-
-  
 
   if (anunciosError) {
     console.error('[Feed] Erro ao buscar anúncios:', anunciosError.message)
