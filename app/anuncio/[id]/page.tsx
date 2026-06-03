@@ -62,7 +62,7 @@ export async function generateMetadata({
   const { id } = await Promise.resolve(params)
 
 
-  const { data } = await supabase
+  const { data: anuncioRaw, error: anuncioError} = await supabase
     .from('anuncios')
     .select(`
       titulo,
@@ -74,24 +74,30 @@ export async function generateMetadata({
     .eq('id', id)
     .single()
 
-  if (!data) return { title: 'Anúncio não encontrado' }
+  console.log('params:', params)
+  console.log('params.id:', params.id)
+  console.error('[Feed] Anúncio não encontrado:', anuncioError!.message)
+  console.error(`[Feed] Anúncio: ${anuncioRaw}`)
 
-  const fotos = [...(data.fotos_anuncio ?? [])].sort(
+  if (!anuncioRaw) return { title: 'Anúncio não encontrado' }
+
+  const fotos = [...(anuncioRaw.fotos_anuncio ?? [])].sort(
     (a, b) => a.ordem - b.ordem
   )
   const fotoCapa = fotos[0]?.url ?? null
 
-  const precoTexto = formatarPreco(data.preco, data.tipo_preco ?? 'fixo')
-  const descricaoOG = [precoTexto, data.descricao]
+  const precoTexto = formatarPreco(anuncioRaw.preco, anuncioRaw.tipo_preco ?? 'fixo')
+  const descricaoOG = [precoTexto, anuncioRaw.descricao]
     .filter(Boolean)
     .join(' · ')
 
+  
   return {
-    title: data.titulo,
+    title: anuncioRaw.titulo,
     description: descricaoOG,
     openGraph: {
       url: `${process.env.NEXT_PUBLIC_APP_URL}/anuncio/${id}`,
-      title: data.titulo,
+      title: anuncioRaw.titulo,
       description: descricaoOG,
       type: 'website',
       locale: 'pt_BR',
@@ -101,13 +107,13 @@ export async function generateMetadata({
           url: fotoCapa,
           width: 1200,
           height: 630,
-          alt: data.titulo,
+          alt: anuncioRaw.titulo,
         }],
       }),
     },
     twitter: {
       card: 'summary_large_image',
-      title: data.titulo,
+      title: anuncioRaw.titulo,
       description: descricaoOG,
       ...(fotoCapa && { images: [fotoCapa] }),
     },
@@ -152,7 +158,7 @@ export default async function AnuncioDetalhePage({
 
   console.log('params:', params)
   console.log('params.id:', params.id)
-  console.error('[Feed] Anúncio não encontrado:', anuncioError?.message)
+  console.error('[Feed] Anúncio não encontrado:', anuncioError!.message)
   console.error(`[Feed] Anúncio: ${anuncioRaw}`)
 
   // Se o anúncio não for encontrado, redireciona para o feed (ou 404)
