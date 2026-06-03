@@ -76,7 +76,7 @@ export async function generateMetadata({
 
   console.log('params:', params)
   console.log('id:', id)
-  console.error('[Feed] Anúncio não encontrado:', anuncioError!.message)
+  console.error('[Feed] Anúncio não encontrado:', anuncioError)
   console.error(`[Feed] Anúncio: ${anuncioRaw}`)
 
   if (!anuncioRaw) return { title: 'Anúncio não encontrado' }
@@ -157,8 +157,8 @@ export default async function AnuncioDetalhePage({
     .single()
 
   console.log('params:', params)
-  console.log('params.id:', params.id)
-  console.error('[Feed] Anúncio não encontrado:', anuncioError!.message)
+  console.log('anuncioId:', anuncioId)
+  console.error('[Feed] Anúncio não encontrado:', anuncioError)
   console.error(`[Feed] Anúncio: ${anuncioRaw}`)
 
   // Se o anúncio não for encontrado, redireciona para o feed (ou 404)
