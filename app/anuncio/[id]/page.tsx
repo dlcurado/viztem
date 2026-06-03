@@ -143,18 +143,27 @@ export default async function AnuncioDetalhePage({
         .then(({ data, error: perfilError }) => (perfilError ? null : data))
     : null
 
-  // Busca o anúncio
-  const { data: anuncioRaw, error: anuncioError } = await supabase
-    .from('anuncios')
-    .select(`
+  const selectQuery: string = user
+    ? `
       id, titulo, descricao, preco, tipo_preco,
       status, criado_em, expira_em, bloco, unidade,
       categorias ( nome, icone ),
       perfis ( id, nome, telefone, bloco, unidade ),
       fotos_anuncio ( id, url, ordem )
-    `)
+    `
+    : `
+      id, titulo, descricao, preco, tipo_preco,
+      status, criado_em, expira_em, bloco, unidade,
+      categorias ( nome, icone ),
+      fotos_anuncio ( id, url, ordem )
+    `
+
+  // Busca o anúncio
+  const { data: anuncioRaw, error: anuncioError } = (await supabase
+    .from('anuncios')
+    .select(selectQuery as string)
     .eq('id', anuncioId)
-    .single()
+    .single()) as { data: any; error: any }
 
   console.log('params:', params)
   console.log('anuncioId:', anuncioId)
@@ -182,16 +191,17 @@ export default async function AnuncioDetalhePage({
       ? anuncioRaw.categorias[0] ?? null
       : anuncioRaw.categorias ?? null,
     autor: (() => {
-      const p = Array.isArray(anuncioRaw.perfis)
-        ? anuncioRaw.perfis[0]
-        : anuncioRaw.perfis
+      const perfisRaw = anuncioRaw.perfis ?? null
+      const p = Array.isArray(perfisRaw)
+        ? perfisRaw[0]
+        : perfisRaw
       return p
         ? { id: p.id, nome: p.nome, telefone: p.telefone,
             bloco: p.bloco, unidade: p.unidade }
         : null
     })(),
     fotos: (anuncioRaw.fotos_anuncio ?? []).sort(
-      (a, b) => a.ordem - b.ordem
+      (a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem
     ),
   }
 
@@ -216,7 +226,7 @@ export default async function AnuncioDetalhePage({
       <header className="bg-white shadow-sm py-4 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link
-            href={user ? '/feed' : `/login?callbackUrl=/anuncio/${anuncio.id}`}
+            href={user ? '/feed' : '/'}
             className="text-emerald-600 hover:text-emerald-800 flex items-center"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1"
