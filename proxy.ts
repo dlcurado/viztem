@@ -1,4 +1,3 @@
-// proxy.ts (código da resposta anterior, que já está correto para este fluxo)
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
