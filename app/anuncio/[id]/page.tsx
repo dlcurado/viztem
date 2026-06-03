@@ -7,6 +7,7 @@ import BotaoCompartilhar from '@/components/BotaoCompartilhar'
 import DeleteAnuncioButton from '@/components/DeleteAnuncioButton' // Importado do seu arquivo
 import { logEvent } from '@/lib/analytics';
 import { PageViewLogger } from '@/components/analytics/PageViewLogger'
+import { WhatsAppContactButton } from '@/components/analytics/WhatsAppContactButton'
 
 // ─── Tipagem ──────────────────────────────────────────────────
 // Mantendo a tipagem do seu arquivo original, com pequenas correções para o join
@@ -77,8 +78,8 @@ export async function generateMetadata({
 
   console.log('params:', params)
   console.log('id:', id)
-  console.error('[Feed] Anúncio não encontrado:', anuncioError)
-  console.error(`[Feed] Anúncio: ${anuncioRaw}`)
+  console.log('[Feed] Anúncio não encontrado:', anuncioError)
+  console.log(`[Feed] Anúncio: ${anuncioRaw}`)
 
   if (!anuncioRaw) return { title: 'Anúncio não encontrado' }
 
@@ -167,8 +168,8 @@ export default async function AnuncioDetalhePage({
 
   console.log('params:', params)
   console.log('anuncioId:', anuncioId)
-  console.error('[Feed] Anúncio não encontrado:', anuncioError)
-  console.error(`[Feed] Anúncio: ${anuncioRaw}`)
+  console.log('[Feed] Anúncio não encontrado:', anuncioError)
+  console.log(`[Feed] Anúncio: ${anuncioRaw}`)
 
   // Se o anúncio não for encontrado, redireciona para o feed (ou 404)
   if (anuncioError || !anuncioRaw) {
@@ -338,36 +339,12 @@ export default async function AnuncioDetalhePage({
 
             {/* Botões de ação */}
             <div className="pt-4 border-t border-gray-100 space-y-3">
-              {!user ? (
-                <Link
-                  href={`/login?callbackUrl=/anuncio/${anuncio.id}`}
-                  className="w-full inline-flex items-center justify-center gap-2
-                             bg-emerald-500 hover:bg-emerald-600 text-white
-                             py-3 rounded-md text-lg font-semibold transition-colors"
-                >
-                  Faça login para ver o contato
-                </Link>
-              ) : anuncio.autor?.telefone ? (
-                <a
-                  href={whatsappLink}
-                  onClick={() => logEvent('ad_contact_click', { ad_id: anuncio.id })}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2
-                               bg-green-500 hover:bg-green-600 text-white
-                               py-3 rounded-md text-lg font-semibold transition-colors"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                    <path d="M12 2a1 1 0 011 1v7h7a1 1 0 110 2h-7v7a1 1 0 11-2 0v-7H4a1 1 0 110-2h7V3a1 1 0 011-1z" />
-                  </svg>
-                  Tenho Interesse
-                </a>
-              ) : (
-                <div className="w-full flex items-center justify-center gap-2
-                                bg-gray-100 text-gray-400 py-3 rounded-md text-sm">
-                  📵 Contato não disponível
-                </div>
-              )}
+              <WhatsAppContactButton
+                user={user}
+                anuncioId={anuncio.id}
+                whatsappLink={whatsappLink}
+                userHasPhone={anuncio.autor?.telefone === null || anuncio.autor?.telefone === undefined ? false : true}
+              />
 
               {/* Compartilhar — visível para todos */}
               <BotaoCompartilhar
