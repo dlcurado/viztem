@@ -226,7 +226,7 @@ export default function CadastroPage() {
         <button
           type="submit"
           disabled={carregando}
-          className="{buttonClass}"
+          className="w-full bg-blue-600 text-white font-medium rounded-lg py-2.5 text-sm hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {carregando ? 'Criando conta...' : 'Criar conta'}
         </button>

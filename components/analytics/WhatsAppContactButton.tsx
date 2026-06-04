@@ -17,7 +17,7 @@ export function WhatsAppContactButton({ user, anuncioId, whatsappLink, userHasPh
       <div className="w-full flex items-center justify-center gap-2
                       bg-gray-100 text-gray-400 py-3 rounded-md text-sm">
         <Link
-                  href={`/login?callbackUrl=/anuncio/${anuncio.id}`}
+                  href={`/login?callbackUrl=/anuncio/${anuncioId}`}
                   className="w-full inline-flex items-center justify-center gap-2
                              bg-emerald-500 hover:bg-emerald-600 text-white
                              py-3 rounded-md text-lg font-semibold transition-colors"
