@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import BotaoCompartilhar from '@/components/BotaoCompartilhar'
 import DeleteAnuncioButton from '@/components/DeleteAnuncioButton' // Importado do seu arquivo
-import { PageViewLogger } from '@/components/analytics/PageViewLogger'
+import { EventLogger } from '@/components/analytics/EventLogger'
 import { WhatsAppContactButton } from '@/components/analytics/WhatsAppContactButton'
 
 // ─── Tipagem ──────────────────────────────────────────────────
@@ -222,7 +222,12 @@ export default async function AnuncioDetalhePage({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <PageViewLogger page="ad_details" ad_id={anuncio.id} />
+      <EventLogger eventName="ad_view" payload={
+        { page: "ad_view", 
+          ad_id: anuncio.id, 
+          user_id: user?.id ?? null, 
+          condominio_id: perfilUsuarioLogado?.condominio_id ?? null }
+        } />
       {/* Header */}
       <header className="bg-white shadow-sm py-4 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto flex items-center justify-between">

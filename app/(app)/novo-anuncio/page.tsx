@@ -197,6 +197,7 @@ export default function NovoAnuncioPage() {
       categoria: form.categoria_id,
       num_fotos: fotos.length,
       condominio_id: perfil.condominio_id,
+      user_id: userId
     });
 
     // 4. Sucesso — voltar para o feed

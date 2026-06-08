@@ -14,14 +14,14 @@ export function LandingCTAsClient({ finalCta = false }: LandingCTAsClientProps) 
       <>
         <Link
           href="/cadastro"
-          onClick={() => logEvent('click_cta_cadastrar', { source: 'landing_final' })}
+          onClick={() => logEvent('click_cta_cadastrar', { source: 'landing' })}
           className="px-10 py-4 bg-white text-emerald-700 font-bold rounded-xl text-base hover:bg-emerald-50 transition"
         >
           Criar minha conta gratuita
         </Link>
         <Link
           href="/login"
-          onClick={() => logEvent('click_cta_acessar', { source: 'landing_final' })}
+          onClick={() => logEvent('click_cta_acessar', { source: 'landing' })}
           className="text-emerald-200 text-sm hover:text-white transition underline underline-offset-4"
         >
           Já tenho conta? Entrar →

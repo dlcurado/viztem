@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { logEvent } from '@/lib/analytics';
+import { EventLogger } from '@/components/analytics/EventLogger'
 
 export default function CadastroPage() {
   const router = useRouter()
@@ -50,6 +51,10 @@ export default function CadastroPage() {
     setCarregando(true)
     setErro(null)
 
+    const payload: Record<string, any> = { page: 'feed' };
+    let condominio_id: string | undefined = undefined;
+    let user_id: string | undefined = undefined;
+
     // ── 1. Validar código do condomínio ───────────────────────
     const { data: condominio, error: erroCond } = await supabase
       .from('condominios')
@@ -66,7 +71,7 @@ export default function CadastroPage() {
     // ── 2. Criar conta com todos os dados em metadata ─────────
     // O trigger on_auth_user_created lê raw_user_meta_data
     // e insere o perfil completo em public.perfis automaticamente
-    const { error: erroAuth } = await supabase.auth.signUp({
+    const { data: perfilAuthData, error: erroAuth } = await supabase.auth.signUp({
       email: form.email,
       password: form.senha,
       options: {
@@ -84,13 +89,28 @@ export default function CadastroPage() {
       setErro(traduzirErro(erroAuth.message))
       setCarregando(false)
       return
-    } else {
-      // Sucesso no cadastro
-      // Você precisará obter o condominio_id aqui, talvez do perfil do usuário recém-criado
-      // ou de um campo no formulário de cadastro.
-      
-      logEvent('signup_completed', { condominio_id: condominio.id });
     }
+    // Sucesso no cadastro
+    // Você precisará obter o condominio_id aqui, talvez do perfil do usuário recém-criado
+    // ou de um campo no formulário de cadastro.
+    
+    if (perfilAuthData.user) {
+      user_id = perfilAuthData.user?.id;
+    
+      // Exemplo: buscar o perfil para obter o condominio_id
+      const { data: perfilData } = await supabase.from('perfis')
+        .select('condominio_id')
+        .eq('id', perfilAuthData.user.id)
+        .single();
+        
+      if (perfilData) {
+        condominio_id = perfilData.condominio_id;
+      }
+    }
+
+    payload.condominio_id = condominio_id;
+    payload.user_id = user_id;
+    logEvent('signup_completed', payload);
 
     // ── 3. Trigger cuidou do perfil — redireciona pro feed ────
     router.push('/feed')
@@ -104,12 +124,9 @@ export default function CadastroPage() {
 
   const labelClass = 'block text-sm font-medium text-gray-800 mb-1'
 
-  const buttonClass = 'w-full bg-blue-600 text-white font-medium rounded-lg ' +
-                     'py-2.5 text-sm hover:bg-blue-700 transition ' +
-                     'disabled:opacity-50 disabled:cursor-not-allowed'
-
   return (
     <div className="bg-white rounded-2xl shadow-sm p-8">
+      <EventLogger eventName="signup_started" payload={{ page: "signup" }} />
       <h2 className="text-xl font-bold text-gray-900 mb-6">Criar conta</h2>
 
       <form onSubmit={handleCadastro} className="space-y-4">

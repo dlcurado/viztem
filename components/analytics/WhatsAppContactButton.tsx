@@ -40,7 +40,9 @@ export function WhatsAppContactButton({ user, anuncioId, whatsappLink, userHasPh
   return (
     <a
       href={whatsappLink}
-      onClick={() => logEvent('ad_contact_click', { ad_id: anuncioId })}
+      onClick={() => logEvent('ad_contact_click', 
+          { ad_id: anuncioId, user_id: user.id, condominio_id: user.condominio_id }
+        )}
       target="_blank"
       rel="noopener noreferrer"
       className="w-full flex items-center justify-center gap-2

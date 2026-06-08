@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { logEvent } from '@/lib/analytics';
+import { EventLogger } from '@/components/analytics/EventLogger'
 
 function LoginForm() {
   const router = useRouter()
@@ -23,13 +24,13 @@ function LoginForm() {
     setForm((prev) => ({ ...prev, [campo]: valor }))
     setErro(null)
   }
-
+  
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setCarregando(true)
     setErro(null)
 
-    const { data: data, error: error } = await supabase.auth.signInWithPassword({
+    const { data: perfilAuthData, error: error } = await supabase.auth.signInWithPassword({
       email: form.email,
       password: form.senha,
     })
@@ -43,21 +44,29 @@ function LoginForm() {
     // Sucesso no login
     // Para obter o condominio_id, você pode precisar buscar o perfil do usuário
     // ou armazená-lo na sessão/cookies após o login.
-    let condominio_id = 'desconhecido';
-    if (data.user) {
+    const payload: Record<string, any> = { page: 'feed' };
+    let condominio_id: string | undefined = undefined;
+    let user_id: string | undefined = undefined;
+    
+    if (perfilAuthData.user) {
+      user_id = perfilAuthData.user?.id;
       // Exemplo: buscar o perfil para obter o condominio_id
-      const { data: perfilData } = await supabase.from('perfis').select('condominio_id').eq('id', data.user.id).single();
+      const { data: perfilData } = await supabase.from('perfis').select('condominio_id').eq('id', perfilAuthData.user.id).single();
       if (perfilData) {
         condominio_id = perfilData.condominio_id;
       }
     }
-    logEvent('login_completed', { condominio_id: condominio_id });
+    payload.condominio_id = condominio_id;
+    payload.user_id = user_id;
+    
+    logEvent('login_completed', payload);
     router.push(callbackUrl)
     router.refresh()
   }
 
   return (
     <div className="bg-white rounded-2xl shadow-sm p-8">
+      <EventLogger eventName="login_started" payload={{ page: "login" }} />
       <h2 className="text-xl font-bold text-gray-800 mb-6">Entrar</h2>
 
       <form onSubmit={handleLogin} className="space-y-4">

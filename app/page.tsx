@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { PageViewLogger } from '@/components/analytics/PageViewLogger';
+import { EventLogger } from '@/components/analytics/EventLogger';
 import { LandingCTAsClient } from '@/components/landing/LandingCTAsClient'; // Importe o novo Client Component para CTAs
 
 export const metadata: Metadata = {
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 export default function LandingPage() {
   return (
     <main className="min-h-screen bg-white text-gray-900 font-sans">
-      <PageViewLogger page="landing" />
+      <EventLogger eventName="page_view" payload={{ page: "landing" }} />
       {/* ── HERO ─────────────────────────────────────────────── */}
       <section className="bg-gradient-to-br from-emerald-600 to-emerald-800 text-white">
         <div className="max-w-3xl mx-auto px-6 py-20 flex flex-col items-center text-center gap-6">
