@@ -8,10 +8,10 @@ interface WhatsAppContactButtonProps {
   user: any; // Você pode substituir 'any' pelo tipo do usuário que você tem no seu projeto
   anuncioId: string;
   whatsappLink: string;
-  userHasPhone: boolean; // Indica se o usuário logado tem telefone para a mensagem
+  anuncioHasPhone: boolean; // Indica se o usuário logado tem telefone para a mensagem
 }
 
-export function WhatsAppContactButton({ user, anuncioId, whatsappLink, userHasPhone }: WhatsAppContactButtonProps) {
+export function WhatsAppContactButton({ user, anuncioId, whatsappLink, anuncioHasPhone }: WhatsAppContactButtonProps) {
   if(!user){
     return (
       <div className="w-full flex items-center justify-center gap-2
@@ -28,7 +28,7 @@ export function WhatsAppContactButton({ user, anuncioId, whatsappLink, userHasPh
     );
   }
   
-  if (!userHasPhone) {
+  if (!anuncioHasPhone) {
     return (
       <div className="w-full flex items-center justify-center gap-2
                       bg-gray-100 text-gray-400 py-3 rounded-md text-sm">

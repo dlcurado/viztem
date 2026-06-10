@@ -15,6 +15,7 @@ type Categoria = {
 
 type Perfil = {
   condominio_id: string
+  role: string
 }
 
 export default function NovoAnuncioPage() {
@@ -38,6 +39,8 @@ export default function NovoAnuncioPage() {
     categoria_id: '',
     tipo_preco: 'fixo' as 'fixo' | 'negociavel' | 'gratis',
     preco: '',
+    whatsapp: '',
+    url: '',
   })
 
   // ─── Buscar perfil e categorias ──────────────────────────────
@@ -51,7 +54,7 @@ export default function NovoAnuncioPage() {
 
       const { data: perfilData } = await supabase
         .from('perfis')
-        .select('condominio_id')
+        .select('condominio_id, role')
         .eq('id', user.id)
         .single()
 
@@ -164,7 +167,11 @@ export default function NovoAnuncioPage() {
           ? parseFloat(form.preco.replace(',', '.'))
           : null,
         condominio_id: perfil.condominio_id,
-        usuario_id: userId,
+        created_by_user_id: userId,
+        owner_user_id: userId,
+        created_by_type: perfil.role,
+        contact_whatsapp: form.whatsapp, // Pode ser adicionado depois na edição
+        contact_url: form.url, // Pode ser adicionado depois na edição
         status: 'ativo',
       })
       .select('id')
@@ -326,6 +333,32 @@ export default function NovoAnuncioPage() {
               </option>
             ))}
           </select>
+        </div>
+
+        {/* ── Whatsapp ───────────────────────────────────── */}
+        <div>
+          <label className={labelClass}>Whatsapp</label>
+          <input
+            type="text"
+            required
+            value={form.whatsapp}
+            onChange={(e) => atualizar('whatsapp', e.target.value)}
+            placeholder="Ex: (11) 99999-9999"
+            className={inputClass}
+          />
+        </div>
+
+        {/* ── URL ────────────────────────────────────── */}
+        <div>
+          <label className={labelClass}>Site</label>
+          <input
+            type="text"
+            value={form.url}
+            onChange={(e) => atualizar('url', e.target.value)}
+            placeholder="Ex: https://exemplo.com"
+
+            className={inputClass}
+          />
         </div>
 
         {/* ── Tipo de preço ─────────────────────────────────── */}

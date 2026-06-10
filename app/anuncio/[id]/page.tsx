@@ -7,6 +7,7 @@ import BotaoCompartilhar from '@/components/BotaoCompartilhar'
 import DeleteAnuncioButton from '@/components/DeleteAnuncioButton' // Importado do seu arquivo
 import { EventLogger } from '@/components/analytics/EventLogger'
 import { WhatsAppContactButton } from '@/components/analytics/WhatsAppContactButton'
+import { UrlContactButton } from '@/components/analytics/UrlContactButton'
 
 // ─── Tipagem ──────────────────────────────────────────────────
 // Mantendo a tipagem do seu arquivo original, com pequenas correções para o join
@@ -22,13 +23,24 @@ export type AnuncioDetalhado = {
   bloco: string | null
   unidade: string | null
   categoria: { nome: string; icone: string | null } | null // icone pode ser null
-  autor: { // Renomeado de 'perfis' para 'autor' para corresponder ao alias no select
+  created_by_user_id: string
+  autor: {
     id: string
     nome: string
     telefone: string | null
     bloco: string | null
     unidade: string | null
   } | null
+  owner_user_id: string
+  owner: { // Renomeado de 'perfis' para 'owner' para corresponder ao alias no select
+    id: string
+    nome: string
+    telefone: string | null
+    bloco: string | null
+    unidade: string | null
+  } | null
+  contact_whatsapp: string | null
+  contact_url: string | null
   fotos: { id: string; url: string; ordem: number }[]
 }
 
@@ -137,7 +149,7 @@ export default async function AnuncioDetalhePage({
   const perfilUsuarioLogado = user
     ? await supabase
         .from('perfis')
-        .select('id, condominio_id, nome, telefone, bloco, unidade')
+        .select('id, condominio_id, nome, telefone, bloco, unidade, role')
         .eq('id', user.id)
         .single()
         .then(({ data, error: perfilError }) => (perfilError ? null : data))
@@ -146,9 +158,11 @@ export default async function AnuncioDetalhePage({
   const selectQuery: string = user
     ? `
       id, titulo, descricao, preco, tipo_preco,
-      status, criado_em, expira_em, bloco, unidade,
+      status, criado_em, expira_em, bloco, unidade, created_by_user_id, owner_user_id,
+      contact_whatsapp, contact_url,
       categorias ( nome, icone ),
-      perfis ( id, nome, telefone, bloco, unidade ),
+      autor:created_by_user_id ( id, nome, telefone, bloco, unidade ),
+      owner:owner_user_id ( id, nome, telefone, bloco, unidade ),
       fotos_anuncio ( id, url, ordem )
     `
     : `
@@ -165,10 +179,9 @@ export default async function AnuncioDetalhePage({
     .eq('id', anuncioId)
     .single()) as { data: any; error: any }
 
-  console.log('params:', params)
-  console.log('anuncioId:', anuncioId)
-  console.log('[Feed] Anúncio não encontrado:', anuncioError)
-  console.log(`[Feed] Anúncio: ${anuncioRaw}`)
+  console.log('User role:', perfilUsuarioLogado?.role)
+
+  if(anuncioError) console.log('[Feed] Anúncio não encontrado:', anuncioError)
 
   // Se o anúncio não for encontrado, redireciona para o feed (ou 404)
   if (anuncioError || !anuncioRaw) {
@@ -190,27 +203,33 @@ export default async function AnuncioDetalhePage({
     categoria: Array.isArray(anuncioRaw.categorias)
       ? anuncioRaw.categorias[0] ?? null
       : anuncioRaw.categorias ?? null,
+    created_by_user_id: anuncioRaw.created_by_user_id,
     autor: (() => {
-      const perfisRaw = anuncioRaw.perfis ?? null
-      const p = Array.isArray(perfisRaw)
-        ? perfisRaw[0]
-        : perfisRaw
-      return p
-        ? { id: p.id, nome: p.nome, telefone: p.telefone,
-            bloco: p.bloco, unidade: p.unidade }
-        : null
+      const p = Array.isArray(anuncioRaw.autor) ? anuncioRaw.autor[0] : anuncioRaw.autor
+      return p ? { id: p.id, nome: p.nome, telefone: p.telefone, bloco: p.bloco, unidade: p.unidade } : null
     })(),
+
+    owner_user_id: anuncioRaw.owner_user_id,
+    owner: (() => {
+      const p = Array.isArray(anuncioRaw.owner) ? anuncioRaw.owner[0] : anuncioRaw.owner
+      return p ? { id: p.id, nome: p.nome, telefone: p.telefone, bloco: p.bloco, unidade: p.unidade } : null
+    })(),
+
+    contact_whatsapp: anuncioRaw.contact_whatsapp ?? '',
+    contact_url: anuncioRaw.contact_url ?? '',
     fotos: (anuncioRaw.fotos_anuncio ?? []).sort(
       (a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem
     ),
   }
 
   const isOwner = user?.id === anuncio.autor?.id
+  const isAdmin = perfilUsuarioLogado?.role === 'admin'
 
   const fotosOrdenadas = anuncio.fotos.sort((a, b) => a.ordem - b.ordem)
   const fotoCapa = fotosOrdenadas[0]?.url ?? '/vercel.svg' // Fallback para imagem padrão
 
-  const telVendedor = anuncio.autor?.telefone?.replace(/\D/g, '') || ''
+  const telAnuncio = anuncio.contact_whatsapp?.replace(/\D/g, '') || ''
+  const urlAnuncio = anuncio.contact_url || undefined
   const mensagemWhatsApp = encodeURIComponent(
     `Olá! Tenho interesse no seu anúncio *"${anuncio.titulo}"* no Viztem! 🏘️\n\n` +
     `Meu nome é *${perfilUsuarioLogado?.nome ?? 'um morador'}*` +
@@ -218,7 +237,7 @@ export default async function AnuncioDetalhePage({
     `${perfilUsuarioLogado?.unidade ? `, Apto ${perfilUsuarioLogado.unidade}` : ''}.\n\n` +
     `Pode me chamar neste número: *${perfilUsuarioLogado?.telefone ?? 'não informado'}*`
   )
-  const whatsappLink = `https://wa.me/55${telVendedor}?text=${mensagemWhatsApp}`
+  const whatsappLink = `https://wa.me/55${telAnuncio}?text=${mensagemWhatsApp}`
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -245,7 +264,7 @@ export default async function AnuncioDetalhePage({
             Voltar ao Feed
           </Link>
 
-          {user && isOwner && (
+          {user && (isOwner || isAdmin) && (
             <div className="flex space-x-2">
               <Link
                 href={`/anuncio/${anuncio.id}/editar`}
@@ -308,12 +327,12 @@ export default async function AnuncioDetalhePage({
                     <span className="font-medium">Publicado em:</span>{' '}
                     {formatarData(anuncio.criado_em)}
                   </li>
-                  {anuncio.expira_em && (
+                  {/*anuncio.expira_em && (
                     <li>
                       <span className="font-medium">Expira em:</span>{' '}
                       {formatarData(anuncio.expira_em)}
                     </li>
-                  )}
+                  )*/}
                   <li>
                     <span className="font-medium">Status:</span>{' '}
                     <span className="capitalize">{anuncio.status}</span>
@@ -321,19 +340,19 @@ export default async function AnuncioDetalhePage({
                 </ul>
               </div>
 
-              {anuncio.autor && (
+              {anuncio.owner && (
                 <div>
                   <h2 className="text-lg font-semibold text-gray-800 mb-2">Vendedor</h2>
                   <ul className="text-gray-700 space-y-1">
                     <li>
-                      <span className="font-medium">Nome:</span> {anuncio.autor.nome}
+                      <span className="font-medium">Nome:</span> {anuncio.owner.nome}
                     </li>
-                    {(anuncio.autor.bloco || anuncio.autor.unidade) && (
+                    {(anuncio.owner.bloco || anuncio.owner.unidade) && (
                       <li>
                         <span className="font-medium">Localização:</span>{' '}
-                        {anuncio.autor.bloco && `Bloco ${anuncio.autor.bloco}`}
-                        {anuncio.autor.bloco && anuncio.autor.unidade && ' · '}
-                        {anuncio.autor.unidade && `Apto ${anuncio.autor.unidade}`}
+                        {anuncio.owner.bloco && `Bloco ${anuncio.owner.bloco}`}
+                        {anuncio.owner.bloco && anuncio.owner.unidade && ' · '}
+                        {anuncio.owner.unidade && `Apto ${anuncio.owner.unidade}`}
                       </li>
                     )}
                   </ul>
@@ -347,8 +366,16 @@ export default async function AnuncioDetalhePage({
                 user={user}
                 anuncioId={anuncio.id}
                 whatsappLink={whatsappLink}
-                userHasPhone={anuncio.autor?.telefone === null || anuncio.autor?.telefone === undefined ? false : true}
+                anuncioHasPhone={anuncio.contact_whatsapp === null || anuncio.contact_whatsapp === undefined ? false : true}
               />
+
+              {urlAnuncio && (
+                <UrlContactButton
+                  user={user}
+                  anuncioId={anuncio.id}
+                  url={urlAnuncio}
+                />
+              )}
 
               {/* Compartilhar — visível para todos */}
               <BotaoCompartilhar

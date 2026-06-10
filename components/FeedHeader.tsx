@@ -5,14 +5,15 @@ import { logEvent } from '@/lib/analytics'; // Importar logEvent para o onClick
 
 type Props = {
   nomeUsuario: string
+  roleUsuario: string
   nomeCondominio: string
   countAnunciosRestantes: number
 }
 
-export default function FeedHeader({ nomeUsuario, nomeCondominio, countAnunciosRestantes }: Props) {
+export default function FeedHeader({ nomeUsuario, roleUsuario, nomeCondominio, countAnunciosRestantes }: Props) {
   // Pegar apenas o primeiro nome
   const primeiroNome = nomeUsuario.split(' ')[0]
-  const podePublicar = countAnunciosRestantes > 0;
+  const podePublicar = countAnunciosRestantes > 0 || roleUsuario === 'admin';
 
   return (
     <div className="flex items-center justify-between mb-4">

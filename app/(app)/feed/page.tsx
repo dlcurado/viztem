@@ -18,12 +18,15 @@ export type AnuncioComDetalhes = {
     nome: string
     icone: string
   } | null
+  created_by_user_id: string
   autor: {
+    id: string
     nome: string
   } | null
-  perfis: {
-    bloco: string | null
-    unidade: string | null
+  owner_user_id: string
+  owner:{
+    id: string
+    nome: string
   } | null
   foto_capa: string | null
 }
@@ -45,16 +48,19 @@ export default async function FeedPage({
     redirect('/login')
   }
 
+  
+
   // 2. Busca perfil do usuário logado
   const { data: perfilRaw, error: perfilError } = await supabase
     .from('perfis')
-    .select('nome, condominio_id, condominios(nome)')
+    .select('nome, condominio_id, condominios(nome), role')
     .eq('id', user.id)
     .single()
 
   // Tipar manualmente para evitar inferência errada do Supabase
   const perfil = perfilRaw as {
     nome: string
+    role: string
     condominio_id: string
     condominios: { nome: string } | { nome: string }[] | null
   } | null
@@ -72,7 +78,7 @@ export default async function FeedPage({
   const { count: userAnunciosCount, error: countError } = await supabase
     .from('anuncios')
     .select('id', { count: 'exact' }) // Seleciona apenas o ID e pede a contagem exata
-    .eq('usuario_id', user.id)
+    .eq('owner_user_id', user.id)
     .eq('condominio_id', condominioId) // Garante que a contagem é do condomínio atual
     .eq('status', 'ativo'); // Apenas anúncios ativos contam para o limite
 
@@ -94,14 +100,19 @@ export default async function FeedPage({
       tipo_preco,
       status,
       criado_em,
+      created_by_user_id,
+      owner_user_id,
       categorias (
         nome,
         icone
       ),
-      perfis (
-        nome,
-        bloco,
-        unidade
+      autor:created_by_user_id (
+        id,
+        nome
+      ),
+      owner:owner_user_id (
+        id,
+        nome
       ),
       fotos_anuncio (
         url,
@@ -146,18 +157,18 @@ export default async function FeedPage({
         ? (a.categorias[0] ?? null)
         : (a.categorias ?? null),
 
+      created_by_user_id: a.created_by_user_id,
       autor: (() => {
-        const p = Array.isArray(a.perfis) ? a.perfis[0] : a.perfis
-        return p ? { nome: p.nome } : null
+        const p = Array.isArray(a.autor) ? a.autor[0] : a.autor
+        return p ? { id: p.id, nome: p.nome } : null
       })(),
 
-      perfis: (() => {
-        const p = Array.isArray(a.perfis) ? a.perfis[0] : a.perfis
-        return p ? {
-          bloco: p.bloco ?? null,
-          unidade: p.unidade ?? null,
-        } : null
+      owner_user_id: a.owner_user_id,
+      owner: (() => {
+        const p = Array.isArray(a.owner) ? a.owner[0] : a.owner
+        return p ? { id: p.id, nome: p.nome } : null
       })(),
+
       // Pega a foto de menor ordem
       foto_capa:
         Array.isArray(a.fotos_anuncio) && a.fotos_anuncio.length > 0
@@ -180,6 +191,7 @@ export default async function FeedPage({
       <FirstFeedViewLogger />
       <FeedHeader
         nomeUsuario={perfil.nome}
+        roleUsuario={perfil.role}
         nomeCondominio={
           Array.isArray(perfil.condominios)
             ? (perfil.condominios[0]?.nome ?? '')

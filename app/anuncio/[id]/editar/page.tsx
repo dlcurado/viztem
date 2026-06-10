@@ -18,6 +18,7 @@ type Categoria = {
 
 type Perfil = {
   condominio_id: string
+  role: string
 }
 
 // Para fotos existentes e novas
@@ -48,6 +49,8 @@ export default function EditarAnuncioPage({ params }: Props) {
     categoria_id: '',
     tipo_preco: 'fixo' as 'fixo' | 'negociavel' | 'gratis',
     preco: '',
+    whatsapp: '',
+    url: '',
   })
 
   // ─── Carregar dados do anúncio e perfil na montagem ──────────────────────────────
@@ -64,12 +67,14 @@ export default function EditarAnuncioPage({ params }: Props) {
       // 1. Buscar perfil do usuário
       const { data: perfilData } = await supabase
         .from('perfis')
-        .select('condominio_id, bloco, unidade')
+        .select('condominio_id, role')
         .eq('id', user.id)
         .single()
-
+      
+      let isAdmin = false;
       if (perfilData) {
         setPerfil(perfilData)
+        isAdmin = perfilData.role === 'admin'
       } else {
         setErro('Perfil do usuário não encontrado.')
         setCarregando(false);
@@ -86,7 +91,7 @@ export default function EditarAnuncioPage({ params }: Props) {
       if (categoriasData) setCategorias(categoriasData)
 
       // 3. Buscar dados do anúncio
-      const { data: anuncioRaw, error: anuncioError } = await supabase
+      let queryAnuncio = supabase
         .from('anuncios')
         .select(`
           id,
@@ -100,18 +105,16 @@ export default function EditarAnuncioPage({ params }: Props) {
           bloco,
           unidade,
           categoria_id,
-          usuario_id,
+          created_by_user_id,
+          owner_user_id,
+          contact_whatsapp,
+          contact_url,
           categorias (
             nome,
             icone
           ),
-          perfis (
-            id,
-            nome,
-            telefone,
-            bloco,
-            unidade
-          ),
+          autor:created_by_user_id ( id, nome, telefone, bloco, unidade ),
+          owner:owner_user_id ( id, nome, telefone, bloco, unidade ),
           fotos_anuncio (
             id,
             url,
@@ -119,9 +122,16 @@ export default function EditarAnuncioPage({ params }: Props) {
           )
         `)
         .eq('id', anuncioId) // Usando o anuncioId que vem de params.id
-        .eq('condominio_id', perfilData.condominio_id) // RLS já deve cuidar disso, mas é bom garantir
-        .eq('usuario_id', user.id) // Garante que só o dono pode editar
-        .single()
+        .eq('condominio_id', perfilData.condominio_id); // RLS já deve cuidar disso, mas é bom garantir
+      
+      // Se não for admin, garante que só o dono pode acessar
+      // Se for admin, ele pode editar qualquer anúncio do condomínio, então não filtramos por owner_user_id
+      if(!isAdmin){
+        console.log('User is not admin')
+        queryAnuncio = queryAnuncio.eq('owner_user_id', user.id) // Garante que só o dono pode editar
+      }
+
+      const { data: anuncioRaw, error: anuncioError } = await queryAnuncio.single();
 
       if (anuncioError || !anuncioRaw) {
         setErro('Anúncio não encontrado ou você não tem permissão para editá-lo.')
@@ -144,18 +154,20 @@ export default function EditarAnuncioPage({ params }: Props) {
         categoria: Array.isArray(anuncioRaw.categorias)
           ? anuncioRaw.categorias[0] ?? null
           : anuncioRaw.categorias ?? null,
+        created_by_user_id: anuncioRaw.created_by_user_id,
         autor: (() => {
-          const perfil = Array.isArray(anuncioRaw.perfis)
-            ? anuncioRaw.perfis[0]
-            : anuncioRaw.perfis;
-          return perfil ? {
-            id: perfil.id,
-            nome: perfil.nome,
-            telefone: perfil.telefone,
-            bloco: perfil.bloco,
-            unidade: perfil.unidade,
-          } : null;
+          const p = Array.isArray(anuncioRaw.autor) ? anuncioRaw.autor[0] : anuncioRaw.autor
+          return p ? { id: p.id, nome: p.nome, telefone: p.telefone, bloco: p.bloco, unidade: p.unidade } : null
         })(),
+
+        owner_user_id: anuncioRaw.owner_user_id,
+        owner: (() => {
+          const p = Array.isArray(anuncioRaw.owner) ? anuncioRaw.owner[0] : anuncioRaw.owner
+          return p ? { id: p.id, nome: p.nome, telefone: p.telefone, bloco: p.bloco, unidade: p.unidade } : null
+        })(),
+
+        contact_whatsapp: anuncioRaw.contact_whatsapp ?? '',
+        contact_url: anuncioRaw.contact_url ?? '',
         fotos: (anuncioRaw.fotos_anuncio ?? []).sort((a: any, b: any) => a.ordem - b.ordem),
       }
       setAnuncioOriginal(anuncio);
@@ -167,6 +179,8 @@ export default function EditarAnuncioPage({ params }: Props) {
         categoria_id: anuncioRaw.categoria_id,
         tipo_preco: anuncio.tipo_preco,
         preco: anuncio.preco?.toString() ?? '',
+        whatsapp: anuncio.contact_whatsapp ?? '',
+        url: anuncio.contact_url ?? '',
       })
 
       // Pré-preencher as fotos existentes
@@ -254,7 +268,7 @@ export default function EditarAnuncioPage({ params }: Props) {
     for (const foto of fotosParaUpload) {
       ordemAtual++;
       const extensao = foto.name.split('.').pop();
-      const caminho = `${userId}/${anuncio_id}/${ordemAtual}.${extensao}`;
+      const caminho = `${anuncio_id}/${ordemAtual}.${extensao}`;
 
       const { error: uploadError } = await supabase.storage
         .from('anuncios')
@@ -312,7 +326,7 @@ export default function EditarAnuncioPage({ params }: Props) {
     }
 
     // 1. Atualizar o anúncio
-    const { error: erroAnuncio } = await supabase
+    let editAnuncioQuery = supabase
       .from('anuncios')
       .update({
         titulo: form.titulo,
@@ -322,10 +336,18 @@ export default function EditarAnuncioPage({ params }: Props) {
         preco: form.tipo_preco !== 'gratis' && form.preco
           ? parseFloat(form.preco.replace(',', '.'))
           : null,
+        
         // status: 'ativo', // Manter status atual ou permitir edição? Por enquanto, manter
       })
       .eq('id', anuncioId)
-      .eq('usuario_id', userId) // Garante que só o dono pode atualizar
+
+    const isAdmin = perfil.role === 'admin';
+    // Se o usuário logado for admin, ele pode atualizar qualquer anúncio
+    if(!isAdmin) {
+      editAnuncioQuery = editAnuncioQuery.eq('usuario_id', userId) // Garante que só o dono pode atualizar
+    }
+
+    const { error: erroAnuncio } = await editAnuncioQuery;
 
     if (erroAnuncio) {
       setErro('Erro ao atualizar anúncio. Tente novamente.')
@@ -374,11 +396,17 @@ export default function EditarAnuncioPage({ params }: Props) {
     if (fotosDbError) console.error('Erro ao deletar fotos do DB durante exclusão:', fotosDbError.message);
 
     // 3. Deletar o anúncio (RLS deve permitir se usuario_id = auth.uid())
-    const { error: anuncioDeleteError } = await supabase
+    let deleteAnuncioQuery = supabase
       .from('anuncios')
       .delete()
       .eq('id', anuncioId)
-      .eq('usuario_id', userId); // Garante que só o dono pode deletar
+    
+    const isAdmin = perfil?.role === 'admin';
+    if(!isAdmin) {
+      deleteAnuncioQuery = deleteAnuncioQuery.eq('usuario_id', userId); // Garante que só o dono pode deletar
+    }
+
+    const { error: anuncioDeleteError } = await deleteAnuncioQuery;
 
     if (anuncioDeleteError) {
       setErro('Erro ao excluir anúncio. Tente novamente.');
