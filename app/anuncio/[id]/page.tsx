@@ -47,7 +47,7 @@ export type AnuncioDetalhado = {
 // ─── Helpers ──────────────────────────────────────────────────
 function formatarPreco(preco: number | null, tipo: string): string {
   if (tipo === 'gratis') return '🎁 Grátis'
-  if (tipo === 'negociavel' && !preco) return '💬 A combinar'
+  if (tipo === 'negociavel' && !preco) return '💬 Variável'
   if (!preco) return '—'
   const valor = new Intl.NumberFormat('pt-BR', {
     style: 'currency',
