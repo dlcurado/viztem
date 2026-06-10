@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import type { AnuncioDetalhado } from '@/app/anuncio/[id]/page'
 import { use } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -249,6 +250,11 @@ export default function EditarAnuncioPage({ params }: Props) {
       }
     });
 
+    console.log('Fotos para manter:', fotosParaManter);
+    console.log('Fotos para upload:', fotosParaUpload);
+    console.log('Fotos para deletar do Storage:', fotosParaDeletarDoStorage);
+    console.log('Fotos para deletar do DB:', fotosParaDeletarDoDB);
+
     // 1. Deletar fotos do Storage
     if (fotosParaDeletarDoStorage.length > 0) {
       const { error } = await supabase.storage.from('anuncios').remove(fotosParaDeletarDoStorage);
@@ -268,7 +274,8 @@ export default function EditarAnuncioPage({ params }: Props) {
     for (const foto of fotosParaUpload) {
       ordemAtual++;
       const extensao = foto.name.split('.').pop();
-      const caminho = `${anuncio_id}/${ordemAtual}.${extensao}`;
+      const nome = uuidv4(); // Gera um nome único para evitar conflitos
+      const caminho = `${anuncio_id}/${nome}.${extensao}`;
 
       const { error: uploadError } = await supabase.storage
         .from('anuncios')
@@ -284,6 +291,7 @@ export default function EditarAnuncioPage({ params }: Props) {
         .getPublicUrl(caminho);
 
       novasFotosDB.push({ anuncio_id, url: urlData.publicUrl, ordem: ordemAtual });
+      console.log('Novas fotos para DB:', novasFotosDB);
     }
 
     // 4. Inserir novas fotos no DB

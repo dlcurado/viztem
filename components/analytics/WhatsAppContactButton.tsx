@@ -7,7 +7,7 @@ import Link from 'next/link'
 interface WhatsAppContactButtonProps {
   user: any; // Você pode substituir 'any' pelo tipo do usuário que você tem no seu projeto
   anuncioId: string;
-  whatsappLink: string;
+  whatsappLink: any;
   anuncioHasPhone: boolean; // Indica se o usuário logado tem telefone para a mensagem
 }
 

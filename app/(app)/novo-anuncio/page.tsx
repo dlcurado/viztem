@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { logEvent } from '@/lib/analytics';
+import { v4 as uuidv4 } from 'uuid';
 
 type Categoria = {
   id: string
@@ -106,10 +107,11 @@ export default function NovoAnuncioPage() {
 
     for (let i = 0; i < fotos.length; i++) {
       const foto = fotos[i]
+      const nome = uuidv4(); // Gera um nome único para evitar conflitos
       const extensao = foto.name.split('.').pop()
       // ✅ Estrutura: {user_id}/{anuncio_id}/{ordem}.{ext}
       // A política exige que a primeira pasta seja o user_id
-      const caminho = `${userId}/${anuncioId}/${i + 1}.${extensao}`
+      const caminho = `${anuncioId}/${nome}.${extensao}`
 
       const { error } = await supabase.storage
         .from('anuncios')
@@ -340,7 +342,6 @@ export default function NovoAnuncioPage() {
           <label className={labelClass}>Whatsapp</label>
           <input
             type="text"
-            required
             value={form.whatsapp}
             onChange={(e) => atualizar('whatsapp', e.target.value)}
             placeholder="Ex: (11) 99999-9999"

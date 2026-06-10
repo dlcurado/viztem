@@ -79,18 +79,10 @@ export async function generateMetadata({
     .from('anuncios')
     .select(`
       titulo,
-      descricao,
-      preco,
-      tipo_preco,
       fotos_anuncio ( url, ordem )
     `)
     .eq('id', id)
     .single()
-
-  console.log('params:', params)
-  console.log('id:', id)
-  console.log('[Feed] Anúncio não encontrado:', anuncioError)
-  console.log(`[Feed] Anúncio: ${anuncioRaw}`)
 
   if (!anuncioRaw) return { title: 'Anúncio não encontrado' }
 
@@ -99,22 +91,14 @@ export async function generateMetadata({
   )
   const fotoCapa = fotos[0]?.url ?? null
 
-  const precoTexto = formatarPreco(anuncioRaw.preco, anuncioRaw.tipo_preco ?? 'fixo')
-  const descricaoOG = [precoTexto, anuncioRaw.descricao]
-    .filter(Boolean)
-    .join(' · ')
-
-  
   return {
     title: anuncioRaw.titulo,
-    description: descricaoOG,
     openGraph: {
       url: `${process.env.NEXT_PUBLIC_APP_URL}/anuncio/${id}`,
       title: anuncioRaw.titulo,
-      description: descricaoOG,
       type: 'website',
       locale: 'pt_BR',
-      siteName: 'Viztem',
+      siteName: 'VizTem',
       ...(fotoCapa && {
         images: [{
           url: fotoCapa,
@@ -127,7 +111,6 @@ export async function generateMetadata({
     twitter: {
       card: 'summary_large_image',
       title: anuncioRaw.titulo,
-      description: descricaoOG,
       ...(fotoCapa && { images: [fotoCapa] }),
     },
   }
@@ -237,7 +220,8 @@ export default async function AnuncioDetalhePage({
     `${perfilUsuarioLogado?.unidade ? `, Apto ${perfilUsuarioLogado.unidade}` : ''}.\n\n` +
     `Pode me chamar neste número: *${perfilUsuarioLogado?.telefone ?? 'não informado'}*`
   )
-  const whatsappLink = `https://wa.me/55${telAnuncio}?text=${mensagemWhatsApp}`
+  
+  const whatsappLink = telAnuncio ? `https://wa.me/55${telAnuncio}?text=${mensagemWhatsApp}` : undefined
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -366,7 +350,7 @@ export default async function AnuncioDetalhePage({
                 user={user}
                 anuncioId={anuncio.id}
                 whatsappLink={whatsappLink}
-                anuncioHasPhone={anuncio.contact_whatsapp === null || anuncio.contact_whatsapp === undefined ? false : true}
+                anuncioHasPhone={anuncio.contact_whatsapp ? true : false  }
               />
 
               {urlAnuncio && (
