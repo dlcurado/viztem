@@ -22,11 +22,15 @@ export type AnuncioComDetalhes = {
   autor: {
     id: string
     nome: string
+    bloco: string | null
+    unidade: string | null
   } | null
   owner_user_id: string
   owner:{
     id: string
     nome: string
+    bloco: string | null
+    unidade: string | null
   } | null
   foto_capa: string | null
 }
@@ -108,11 +112,15 @@ export default async function FeedPage({
       ),
       autor:created_by_user_id (
         id,
-        nome
+        nome,
+        bloco,
+        unidade
       ),
       owner:owner_user_id (
         id,
-        nome
+        nome,
+        bloco,
+        unidade
       ),
       fotos_anuncio (
         url,
@@ -160,13 +168,13 @@ export default async function FeedPage({
       created_by_user_id: a.created_by_user_id,
       autor: (() => {
         const p = Array.isArray(a.autor) ? a.autor[0] : a.autor
-        return p ? { id: p.id, nome: p.nome } : null
+        return p ? { id: p.id, nome: p.nome, bloco: p.bloco, unidade: p.unidade } : null
       })(),
 
       owner_user_id: a.owner_user_id,
       owner: (() => {
         const p = Array.isArray(a.owner) ? a.owner[0] : a.owner
-        return p ? { id: p.id, nome: p.nome } : null
+        return p ? { id: p.id, nome: p.nome, bloco: p.bloco, unidade: p.unidade } : null
       })(),
 
       // Pega a foto de menor ordem

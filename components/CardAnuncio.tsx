@@ -34,10 +34,10 @@ export default function CardAnuncio({ anuncio }: Props) {
   const precoFormatado = formatarPreco(anuncio.preco, anuncio.tipo_preco)
   const tempoPublicado = formatarTempo(anuncio.criado_em)
   const localizacao =
-    anuncio.perfis?.bloco && anuncio.perfis?.unidade
-      ? `Bloco ${anuncio.perfis.bloco} · Ap ${anuncio.perfis.unidade}`
-      : anuncio.perfis?.bloco
-      ? `Bloco ${anuncio.perfis.bloco}`
+    anuncio.owner?.bloco && anuncio.owner?.unidade
+      ? `Bloco ${anuncio.owner.bloco} · Ap ${anuncio.owner.unidade}`
+      : anuncio.owner?.bloco
+      ? `Bloco ${anuncio.owner.bloco}`
       : null
 
   return (
