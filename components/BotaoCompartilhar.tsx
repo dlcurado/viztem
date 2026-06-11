@@ -2,19 +2,23 @@
 
 interface Props {
   id: string
-  titulo: string
+  //titulo: string
   preco: number | null
   tipo_preco: string
   descricao?: string | null
+  ad_whatsapp?: string | null
+  ad_url?: string | null
   variant?: 'icone' | 'completo'  // icone = card | completo = detalhe
 }
 
 export default function BotaoCompartilhar({
   id,
-  titulo,
-  preco,
-  tipo_preco,
+  //titulo,
   descricao,
+  tipo_preco,
+  preco,
+  ad_whatsapp,
+  ad_url,
   variant = 'icone',
 }: Props) {
 
@@ -32,14 +36,19 @@ export default function BotaoCompartilhar({
 
     const url = `${window.location.origin}/anuncio/${id}`
 
+    console.log(ad_whatsapp, ad_url);
+    
     const linhas = [
-      `🏷️ *${titulo}*`,
-      formatarPrecoTexto() ? `💰 ${formatarPrecoTexto()}` : null,
+      //`🏷️ *${titulo}*`,
       descricao ? `📝 ${descricao}` : null,
+      ``,
+      formatarPrecoTexto() ? `💰 ${formatarPrecoTexto()}` : null,
       ``,
       `👉 Ver anúncio completo:`,
       url,
       ``,
+      ad_whatsapp ? `📞 WhatsApp: ${ad_whatsapp}` : null, '',
+      ad_url ? `🌐 ${ad_url}` : null, ``,
       `_Viztem · Marketplace do seu condomínio_ 🏘️`,
     ]
 

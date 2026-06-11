@@ -364,10 +364,12 @@ export default async function AnuncioDetalhePage({
               {/* Compartilhar — visível para todos */}
               <BotaoCompartilhar
                 id={anuncio.id}
-                titulo={anuncio.titulo}
-                preco={anuncio.preco}
-                tipo_preco={anuncio.tipo_preco}
+                //titulo={anuncio.titulo}
                 descricao={anuncio.descricao}
+                tipo_preco={anuncio.tipo_preco}
+                preco={anuncio.preco}
+                ad_whatsapp={anuncio.contact_whatsapp}
+                ad_url={anuncio.contact_url}
                 variant="completo"
               />
             </div>

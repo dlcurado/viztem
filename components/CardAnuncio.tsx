@@ -31,6 +31,7 @@ function formatarTempo(iso: string): string {
 }
 
 export default function CardAnuncio({ anuncio }: Props) {
+  console.log('Renderizando CardAnuncio:', anuncio);
   const precoFormatado = formatarPreco(anuncio.preco, anuncio.tipo_preco)
   const tempoPublicado = formatarTempo(anuncio.criado_em)
   const localizacao =
@@ -73,10 +74,12 @@ export default function CardAnuncio({ anuncio }: Props) {
         {/* Botão compartilhar — canto superior direito */}
         <BotaoCompartilhar
           id={anuncio.id}
-          titulo={anuncio.titulo}
-          preco={anuncio.preco}
-          tipo_preco={anuncio.tipo_preco}
+          //titulo={anuncio.titulo}
           descricao={anuncio.descricao}
+          tipo_preco={anuncio.tipo_preco}
+          preco={anuncio.preco}
+          ad_whatsapp={anuncio.contact_whatsapp} // TODO: Definir se o campo é do anúncio (ad_) ou do proprietário (contact_)
+          ad_url={anuncio.contact_url} // TODO: Definir se o campo é do anúncio (ad_) ou do proprietário (contact_)
           variant="icone"
         />
       </div>
@@ -92,7 +95,7 @@ export default function CardAnuncio({ anuncio }: Props) {
         {/* Rodapé */}
         <div className="flex items-center justify-between pt-2 border-t border-gray-50">
           <div className="text-xs text-gray-400 space-y-0.5">
-            {anuncio.autor && <p>👤 {anuncio.autor.nome}</p>}
+            {anuncio.owner && <p>👤 {anuncio.owner.nome}</p>}
             {localizacao && <p>📍 {localizacao}</p>}
           </div>
           <span className="text-xs text-gray-400">{tempoPublicado}</span>

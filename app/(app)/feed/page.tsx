@@ -32,6 +32,8 @@ export type AnuncioComDetalhes = {
     bloco: string | null
     unidade: string | null
   } | null
+  contact_whatsapp: string | null
+  contact_url: string | null
   foto_capa: string | null
 }
 
@@ -122,6 +124,8 @@ export default async function FeedPage({
         bloco,
         unidade
       ),
+      contact_whatsapp,
+      contact_url,
       fotos_anuncio (
         url,
         ordem
@@ -176,6 +180,9 @@ export default async function FeedPage({
         const p = Array.isArray(a.owner) ? a.owner[0] : a.owner
         return p ? { id: p.id, nome: p.nome, bloco: p.bloco, unidade: p.unidade } : null
       })(),
+
+      contact_whatsapp: a.contact_whatsapp,
+      contact_url: a.contact_url,
 
       // Pega a foto de menor ordem
       foto_capa:
