@@ -202,7 +202,7 @@ export default async function FeedPage({
     .order('ordem', { ascending: true })
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <>
       <FirstFeedViewLogger />
       <FeedHeader
         nomeUsuario={perfil.nome}
@@ -215,14 +215,12 @@ export default async function FeedPage({
         countAnunciosRestantes={countAnunciosRestantes}
       />
 
-      <main className="max-w-5xl mx-auto px-4 py-6">
-        {/* Filtro de categorias */}
+      <main className="max-w-5xl mx-auto sm:px-4">
         <FiltroCategorias
           categorias={categorias ?? []}
           categoriaAtiva={categoriaFiltro ?? null}
         />
 
-        {/* Grid responsivo */}
         {anunciosNormalizados.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
             <span className="text-5xl mb-4">📭</span>
@@ -230,13 +228,13 @@ export default async function FeedPage({
             <p className="text-sm mt-1">Seja o primeiro a anunciar!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 mt-6">
             {anunciosNormalizados.map((anuncio) => (
               <CardAnuncio key={anuncio.id} anuncio={anuncio} />
             ))}
           </div>
         )}
       </main>
-    </div>
+    </>
   )
 }

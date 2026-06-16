@@ -224,7 +224,7 @@ export default async function AnuncioDetalhePage({
   const whatsappLink = telAnuncio ? `https://wa.me/55${telAnuncio}?text=${mensagemWhatsApp}` : undefined
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-light px-4">
       <EventLogger eventName="ad_view" payload={
         { page: "ad_view", 
           ad_id: anuncio.id, 
@@ -232,20 +232,20 @@ export default async function AnuncioDetalhePage({
           condominio_id: perfilUsuarioLogado?.condominio_id ?? null }
         } />
       {/* Header */}
-      <header className="bg-white shadow-sm py-4 px-4 sm:px-6 lg:px-8">
+      <header className="py-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link
             href={user ? '/feed' : '/'}
-            className="text-emerald-600 hover:text-emerald-800 flex items-center"
+            className="text-gray-400 hover:text-emerald-800 flex items-center"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1"
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mr-1"
               viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd"
                 d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0
                    01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
                 clipRule="evenodd" />
             </svg>
-            Voltar ao Feed
+            Voltar
           </Link>
 
           {user && (isOwner || isAdmin) && (
@@ -263,7 +263,7 @@ export default async function AnuncioDetalhePage({
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <main className="max-w-5xl mx-auto py-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
 
           {/* Foto */}
@@ -286,7 +286,7 @@ export default async function AnuncioDetalhePage({
           {/* Conteúdo */}
           <div className="p-6 space-y-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
                 {anuncio.titulo}
               </h1>
               <p className="text-2xl font-extrabold text-emerald-600">
@@ -299,6 +299,7 @@ export default async function AnuncioDetalhePage({
               <p className="text-gray-700 whitespace-pre-line">{anuncio.descricao}</p>
             </div>
 
+            {/* Detalhes e contato 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-gray-800 mb-2">Detalhes</h2>
@@ -316,7 +317,7 @@ export default async function AnuncioDetalhePage({
                       <span className="font-medium">Expira em:</span>{' '}
                       {formatarData(anuncio.expira_em)}
                     </li>
-                  )*/}
+                  )
                   <li>
                     <span className="font-medium">Status:</span>{' '}
                     <span className="capitalize">{anuncio.status}</span>
@@ -343,7 +344,9 @@ export default async function AnuncioDetalhePage({
                 </div>
               )}
             </div>
+            */}
 
+            
             {/* Botões de ação */}
             <div className="pt-4 border-t border-gray-100 space-y-3">
               <WhatsAppContactButton

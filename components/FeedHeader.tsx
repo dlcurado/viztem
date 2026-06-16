@@ -16,25 +16,29 @@ export default function FeedHeader({ nomeUsuario, roleUsuario, nomeCondominio, c
   const podePublicar = countAnunciosRestantes > 0 || roleUsuario === 'admin';
 
   return (
-    <div className="flex items-center justify-between mb-4">
+    <div className="flex items-center justify-between py-4 sm:px-4 mb-2">
       <div>
-        <h2 className="text-lg font-bold text-gray-900">
-          Olá, {primeiroNome}! 👋
+        <h2 className="text-xl font-bold text-gray-dark">
+          Olá, {primeiroNome}!
         </h2>
-        <p className="text-xs text-gray-500 mt-0.5">
-          📍 {nomeCondominio}
+        <p className="text-sm text-gray-medium mt-0.5">
+          {nomeCondominio}
         </p>
       </div>
 
       {/* Botão publicar */}
       <Link
-        href={podePublicar ? '/novo-anuncio' : '#'} // Sintaxe correta para href
-        className={`flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full transition shadow-sm
+        href={podePublicar ? '/novo-anuncio' : '#'}
+        className={`
+          flex items-center justify-center
+          w-10 h-10 rounded-lg
+          transition shadow-sm
           ${podePublicar
-            ? 'bg-blue-600 text-white hover:bg-blue-700'
-            : 'bg-gray-300 text-gray-600 cursor-not-allowed' // Estilo para desabilitado
+            ? 'bg-primary text-white hover:bg_blue-700'
+            : 'bg-gray-300 text-gray-medium cursor-not-allowed'
           }`}
-        aria-disabled={!podePublicar} // Boa prática de acessibilidade
+        arial-label={podePublicar ? 'Publicar novo anúncio' : 'Limite de anúncios atingido'}
+        aria-disabled={!podePublicar}
         onClick={(e) => {
           if (!podePublicar) {
             e.preventDefault(); // Impede a navegação se o limite for atingido
@@ -46,8 +50,16 @@ export default function FeedHeader({ nomeUsuario, roleUsuario, nomeCondominio, c
           }
         }}
       >
-        <span className="text-base leading-none">+</span>
-        {podePublicar ? 'Publicar' : 'Limite atingido'}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={2.5} // Aumenta a espessura da linha para parecer mais sólido
+          stroke="currentColor"
+          className="w-6 h-6" // Tamanho do ícone
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
       </Link>
     </div>
   )

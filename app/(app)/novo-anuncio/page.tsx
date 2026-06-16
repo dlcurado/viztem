@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { logEvent } from '@/lib/analytics';
 import { v4 as uuidv4 } from 'uuid';
+import Link from 'next/link'
 
 type Categoria = {
   id: string
@@ -227,18 +228,28 @@ export default function NovoAnuncioPage() {
     <div className="max-w-lg mx-auto">
 
       {/* Cabeçalho */}
-      <div className="flex items-center gap-3 mb-6">
-        <button
+      <div className="max-w-5xl mx-auto flex items-center py-4">
+        <Link
+          href="#"
           onClick={() => router.back()}
-          className="text-gray-400 hover:text-gray-600 transition"
+          className="text-gray-400 hover:text-emerald-800 flex items-center"
         >
-          ← Voltar
-        </button>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mr-1"
+            viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd"
+              d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0
+                  01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+              clipRule="evenodd" />
+          </svg>
+          Voltar
+        </Link>
+      </div>
+      
+      <div className="max-w-5xl mx-auto flex items-center">
         <h1 className="text-xl font-bold text-gray-900">Novo anúncio</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-
+      <form onSubmit={handleSubmit} className="space-y-5 py-4">
         {/* ── Fotos ────────────────────────────────────────── */}
         <div>
           <label className={labelClass}>
