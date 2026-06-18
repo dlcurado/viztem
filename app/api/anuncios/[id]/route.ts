@@ -8,6 +8,8 @@ export async function DELETE(
   const { id } = await params
   const supabase = await createClient()
 
+  
+
   // Get current authenticated user
   const {
     data: { user },
@@ -18,12 +20,29 @@ export async function DELETE(
     return new NextResponse('Unauthorized', { status: 401 })
   }
 
+  // Check if the authenticated user is the owner of the anuncio or is admin
+  const { data: perfilRaw, error: perfilError } = await supabase
+    .from('perfis')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const perfil = perfilRaw as {
+    role: string
+  } | null
+
   // Fetch anuncio with related perfil/autor
-  const { data: anuncio, error: fetchError } = await supabase
+  let query = supabase
     .from('anuncios')
-    .select('perfis ( id )')
+    .select(`id`)
     .eq('id', id)
-    .maybeSingle()
+  
+  if(perfil?.role !== 'admin') {
+    query = query.eq('owner_user_id', user.id)
+  }
+
+  const { data: anuncio, error: fetchError } = await query
+    .maybeSingle();
 
   if (fetchError) {
     console.error('[api/anuncios/[id] DELETE] fetch error', fetchError.message)
@@ -32,15 +51,6 @@ export async function DELETE(
 
   if (!anuncio) {
     return new NextResponse('Not found', { status: 404 })
-  }
-
-  const perfil = Array.isArray(anuncio.perfis)
-    ? anuncio.perfis[0]
-    : anuncio.perfis
-
-  const ownerId = perfil?.id
-  if (!ownerId || ownerId !== user.id) {
-    return new NextResponse('Forbidden', { status: 403 })
   }
 
   // Perform delete
