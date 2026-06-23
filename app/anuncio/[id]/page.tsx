@@ -42,6 +42,7 @@ export type AnuncioDetalhado = {
   contact_whatsapp: string | null
   contact_url: string | null
   fotos: { id: string; url: string; ordem: number }[]
+  tipo_anuncio: 'hiperlocal' | 'regional_banner' | 'regional_card';
 }
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -203,6 +204,7 @@ export default async function AnuncioDetalhePage({
     fotos: (anuncioRaw.fotos_anuncio ?? []).sort(
       (a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem
     ),
+    tipo_anuncio: anuncioRaw.tipo_anuncio as 'hiperlocal' | 'regional_banner' | 'regional_card',
   }
 
   const isOwner = user?.id === anuncio.autor?.id

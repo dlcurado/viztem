@@ -21,7 +21,6 @@ function formatarPreco(preco: number | null, tipo: string): string {
 }
 
 export default function CardAnuncio({ anuncio }: Props) {
-  console.log('Renderizando CardAnuncio:', anuncio);
   const precoFormatado = formatarPreco(anuncio.preco, anuncio.tipo_preco)
   
   return (

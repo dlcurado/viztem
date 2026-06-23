@@ -4,6 +4,7 @@ import CardAnuncio from '@/components/CardAnuncio'
 import FiltroCategorias from '@/components/FiltroCategorias'
 import FeedHeader from '@/components/FeedHeader'
 import { FirstFeedViewLogger } from '@/components/analytics/FirstFeedViewLogger'
+import RegionalBannerCarousel from '@/components/RegionalBannerCarousel'
 
 // Tipagem do anúncio enriquecido
 export type AnuncioComDetalhes = {
@@ -35,6 +36,7 @@ export type AnuncioComDetalhes = {
   contact_whatsapp: string | null
   contact_url: string | null
   foto_capa: string | null
+  tipo_anuncio: 'hiperlocal' | 'regional_banner' | 'regional_card'
 }
 
 export default async function FeedPage({
@@ -52,11 +54,9 @@ export default async function FeedPage({
 
   if (authError || !user) {
     redirect('/login')
-  }
+  }  
 
-  
-
-  // 2. Busca perfil do usuário logado
+  // Busca perfil do usuário logado
   const { data: perfilRaw, error: perfilError } = await supabase
     .from('perfis')
     .select('nome, condominio_id, condominios(nome), role')
@@ -80,7 +80,7 @@ export default async function FeedPage({
   const condominioId = perfil.condominio_id
   const { categoria: categoriaFiltro } = await searchParams
 
-  // --- NOVA QUERY PARA CONTAR ANÚNCIOS DO USUÁRIO ---
+  // CONTAR ANÚNCIOS DO USUÁRIO
   const { count: userAnunciosCount, error: countError } = await supabase
     .from('anuncios')
     .select('id', { count: 'exact' }) // Seleciona apenas o ID e pede a contagem exata
@@ -95,8 +95,40 @@ export default async function FeedPage({
 
   const countAnunciosRestantes = 5 - (userAnunciosCount ?? 0);
 
-  // 3. Monta query de anúncios
-  let query = supabase
+  // --- Busca de Anúncios Regionais (Banners) ---
+  const { data: bannersRaw, error: bannersError } = await supabase
+    .from('anuncios')
+    .select(`
+      id,
+      titulo,
+      descricao,
+      tipo_preco,
+      contact_url,
+      fotos_anuncio ( url, ordem )
+    `)
+    .eq('tipo_anuncio', 'regional_banner')
+    .eq('status', 'ativo')
+    .order('criado_em', { ascending: false })
+    .limit(5);
+
+  if (bannersError) {
+    console.error('[Feed] Erro ao buscar banners regionais:', bannersError.message)
+  }
+
+  const bannersNormalizados = (bannersRaw ?? []).map((b: any) => ({
+    id: b.id,
+    titulo: b.titulo,
+    descricao: b.descricao,
+    tipo_preco: b.tipo_preco,
+    contact_url: b.contact_url,
+    foto_capa:
+      Array.isArray(b.fotos_anuncio) && b.fotos_anuncio.length > 0
+        ? b.fotos_anuncio.sort((x: any, y: any) => x.ordem - y.ordem)[0].url
+        : null,
+  }));
+
+  //  Monta query de anúncios
+  let queryAnunciosFeed = supabase
     .from('anuncios')
     .select(`
       id,
@@ -129,13 +161,14 @@ export default async function FeedPage({
       fotos_anuncio (
         url,
         ordem
-      )
+      ),
+      tipo_anuncio
     `)
-    .eq('condominio_id', condominioId)
     .eq('status', 'ativo')
+    .or(`tipo_anuncio.eq.regional_card, and(tipo_anuncio.eq.hiperlocal, condominio_id.eq.${condominioId})`)
     .order('criado_em', { ascending: false })
   
-  // Aplica filtro de categoria se houver
+    // Aplica filtro de categoria se houver
   if (categoriaFiltro) {
     // Busca o id da categoria pelo slug
     const { data: cat } = await supabase
@@ -145,11 +178,13 @@ export default async function FeedPage({
       .single()
 
     if (cat?.id) {
-      query = query.eq('categoria_id', cat.id)
+      queryAnunciosFeed = queryAnunciosFeed.eq('categoria_id', cat.id)
     }
   }
 
-  const { data: anuncios, error: anunciosError } = await query
+  console.log('[Feed] Query de anúncios montada:', queryAnunciosFeed)
+
+  const { data: anuncios, error: anunciosError } = await queryAnunciosFeed
 
   if (anunciosError) {
     console.error('[Feed] Erro ao buscar anúncios:', anunciosError.message)
@@ -191,16 +226,35 @@ export default async function FeedPage({
               (x: any, y: any) => x.ordem - y.ordem
             )[0].url
           : null,
+        
+      tipo_anuncio: a.tipo_anuncio,
     })
   )
 
+  const { data: categoriasComAnunciosIds, error: categoriasIdsError } = await supabase
+    .from('anuncios')
+    .select('*, categorias(id)')
+    .eq('status', 'ativo')
+    .not('categoria_id', 'is', null)
+  
+  
+  if (categoriasIdsError) {
+    console.error('[Feed] Erro ao buscar IDs de categorias com anúncios:', categoriasIdsError.message);
+  }
+
+  //const activeCategoryIds = categoriasComAnunciosIds?.map(item => item.categoria_id) || [];
+
+  
   // 5. Busca categorias para o filtro
   const { data: categorias } = await supabase
     .from('categorias')
     .select('id, nome, icone, slug')
     .eq('ativo', true)
+    .in('id', categoriasComAnunciosIds?.map(item => item.categoria_id) || [])
     .order('ordem', { ascending: true })
-
+  
+  console.log( '[Feed] IDs de categorias com anúncios:', categorias)
+  
   return (
     <>
       <FirstFeedViewLogger />
@@ -216,6 +270,14 @@ export default async function FeedPage({
       />
 
       <main className="max-w-5xl mx-auto sm:px-4">
+
+        {/* Carrossel de Banners Regionais */}
+        {bannersNormalizados.length > 0 && (
+          <div className="mb-6">
+            <RegionalBannerCarousel banners={bannersNormalizados} />
+          </div>
+        )}
+
         <FiltroCategorias
           categorias={categorias ?? []}
           categoriaAtiva={categoriaFiltro ?? null}

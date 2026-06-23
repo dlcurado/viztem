@@ -52,6 +52,7 @@ export default function EditarAnuncioPage({ params }: Props) {
     preco: '',
     whatsapp: '',
     url: '',
+    tipo_anuncio: 'hiperlocal' as 'hiperlocal' | 'regional_banner' | 'regional_card',
   })
 
   // ─── Carregar dados do anúncio e perfil na montagem ──────────────────────────────
@@ -120,7 +121,8 @@ export default function EditarAnuncioPage({ params }: Props) {
             id,
             url,
             ordem
-          )
+          ),
+          tipo_anuncio
         `)
         .eq('id', anuncioId) // Usando o anuncioId que vem de params.id
         .eq('condominio_id', perfilData.condominio_id); // RLS já deve cuidar disso, mas é bom garantir
@@ -170,6 +172,7 @@ export default function EditarAnuncioPage({ params }: Props) {
         contact_whatsapp: anuncioRaw.contact_whatsapp ?? '',
         contact_url: anuncioRaw.contact_url ?? '',
         fotos: (anuncioRaw.fotos_anuncio ?? []).sort((a: any, b: any) => a.ordem - b.ordem),
+        tipo_anuncio: anuncioRaw.tipo_anuncio ?? 'hiperlocal',
       }
       setAnuncioOriginal(anuncio);
 
@@ -182,6 +185,7 @@ export default function EditarAnuncioPage({ params }: Props) {
         preco: anuncio.preco?.toString() ?? '',
         whatsapp: anuncio.contact_whatsapp ?? '',
         url: anuncio.contact_url ?? '',
+        tipo_anuncio: anuncio.tipo_anuncio ?? 'hiperlocal',
       })
 
       // Pré-preencher as fotos existentes
@@ -334,25 +338,40 @@ export default function EditarAnuncioPage({ params }: Props) {
     }
 
     // 1. Atualizar o anúncio
+    const isAdmin = perfil.role === 'admin'; // Já está sendo verificado
+
+    const updateData: any = {
+      titulo: form.titulo,
+      descricao: form.descricao,
+      categoria_id: form.categoria_id,
+      tipo_preco: form.tipo_preco,
+      preco: form.tipo_preco !== 'gratis' && form.preco
+        ? parseFloat(form.preco.replace(',', '.'))
+        : null,
+      contact_whatsapp: form.whatsapp,
+      contact_url: form.url,
+    };
+
+    // Apenas admins podem alterar o tipo_anuncio
+    if (isAdmin) {
+      updateData.tipo_anuncio = form.tipo_anuncio;
+      // Se o tipo_anuncio for regional, o condominio_id deve ser NULL
+      if (form.tipo_anuncio === 'regional_banner' || form.tipo_anuncio === 'regional_card') {
+        updateData.condominio_id = null; // Ou um ID especial, se preferir
+      } else {
+        // Se voltar a ser hiperlocal, garante que o condominio_id seja o do perfil
+        updateData.condominio_id = perfil.condominio_id;
+      }
+    }
+
     let editAnuncioQuery = supabase
       .from('anuncios')
-      .update({
-        titulo: form.titulo,
-        descricao: form.descricao,
-        categoria_id: form.categoria_id,
-        tipo_preco: form.tipo_preco,
-        preco: form.tipo_preco !== 'gratis' && form.preco
-          ? parseFloat(form.preco.replace(',', '.'))
-          : null,
-        
-        // status: 'ativo', // Manter status atual ou permitir edição? Por enquanto, manter
-      })
+      .update(updateData)
       .eq('id', anuncioId)
 
-    const isAdmin = perfil.role === 'admin';
-    // Se o usuário logado for admin, ele pode atualizar qualquer anúncio
+    // Se não for admin, garante que só o dono pode atualizar
     if(!isAdmin) {
-      editAnuncioQuery = editAnuncioQuery.eq('usuario_id', userId) // Garante que só o dono pode atualizar
+      editAnuncioQuery = editAnuncioQuery.eq('owner_user_id', userId) // Usar owner_user_id
     }
 
     const { error: erroAnuncio } = await editAnuncioQuery;
