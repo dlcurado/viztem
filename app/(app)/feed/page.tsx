@@ -166,7 +166,7 @@ export default async function FeedPage({
     `)
     .eq('status', 'ativo')
     .or(`tipo_anuncio.eq.regional_card, and(tipo_anuncio.eq.hiperlocal, condominio_id.eq.${condominioId})`)
-    .order('criado_em', { ascending: false })
+    .order('criado_em', { ascending: true })
   
     // Aplica filtro de categoria se houver
   if (categoriaFiltro) {

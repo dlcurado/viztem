@@ -11,7 +11,7 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
-  --color-primary: #2563eb;
+  --color-primary: var(--color-slate-500);
   --color-whatsapp: #25D366;
   --color-danger: #ef4444;
   --color-gray-dark: #333333;
