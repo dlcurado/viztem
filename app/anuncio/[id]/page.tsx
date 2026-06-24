@@ -347,10 +347,12 @@ export default async function AnuncioDetalhePage({
               )}
             </div>
             */}
-
-            
+          </div>
+        </div>
+        <div className="float-right mt-2">  
+          <div className="bottom-6 right-6">
             {/* Botões de ação */}
-            <div className="pt-4 border-t border-gray-100 space-y-3">
+            <div className="flex gap-4">
               <WhatsAppContactButton
                 user={user}
                 anuncioId={anuncio.id}
