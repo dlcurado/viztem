@@ -52,7 +52,7 @@ export function WhatsAppContactButton({ user, anuncioId, whatsappLink, anuncioHa
           xmlns="http://www.w3.org/2000/svg"
           viewBox="-3 -1 28 28"
           fill="currentColor"
-          className="w-14 h-14 text-green-500"
+          className="w-10 h-10 text-green-500"
         >
           <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15
                    -.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075

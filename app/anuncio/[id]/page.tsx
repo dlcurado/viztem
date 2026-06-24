@@ -265,8 +265,8 @@ export default async function AnuncioDetalhePage({
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto py-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <main className="max-w-5xl mx-auto py-4 sm:px-6 lg:px-8 relative">
+        <div className="bg-white rounded-lg shadow-md overflow-hidden absolute">
 
           {/* Foto */}
           <div className="relative w-full h-64 sm:h-80 bg-gray-200 flex items-center justify-center">
@@ -349,7 +349,7 @@ export default async function AnuncioDetalhePage({
             */}
           </div>
         </div>
-        <div className="float-right mt-2">  
+        <div className="absolute top-60 right-0">  
           <div className="bottom-6 right-6">
             {/* Botões de ação */}
             <div className="flex gap-4">

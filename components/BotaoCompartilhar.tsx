@@ -70,9 +70,9 @@ export default function BotaoCompartilhar({
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          viewBox="2 2 20 20"
+          viewBox="2 2 18 18"
           fill="currentColor"
-          className="w-8 h-8 text-slate-600"
+          className="w-6 h-6 text-slate-600"
         >
           <path d="M17.145 14.04 8.73 10.8l8.415 -3.24c0.675 -0.27 1.035 -1.035 0.765 -1.755 -0.27 -0.675 -1.035 -1.035 -1.755 -0.765l-11.7 4.5C3.96 9.72 3.6 10.26 3.6 10.8s0.36 1.08 0.855 1.26l11.7 4.5c0.18 0.045 0.315 0.09 0.495 0.09 0.54 0 1.035 -0.315 1.26 -0.855 0.27 -0.72 -0.09 -1.485 -0.765 -1.755"/>
           <g>
@@ -95,7 +95,7 @@ export default function BotaoCompartilhar({
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 28 28"
           fill="currentColor"
-          className="w-14 h-14 text-slate-600"
+          className="w-10 h-10 text-slate-600"
         >
           <path d="M20.002 16.38 10.185 12.6l9.818 -3.78a1.575 1.575 0 0 0 0.893 -2.047 1.575 1.575 0 0 0 -2.047 -0.893l-13.65 5.25c-0.578 0.21 -0.997 0.84 -0.997 1.47s0.42 1.26 0.997 1.47l13.65 5.25c0.21 0.052 0.367 0.105 0.578 0.105a1.575 1.575 0 0 0 1.47 -0.997 1.575 1.575 0 0 0 -0.893 -2.047"/>
           <g>

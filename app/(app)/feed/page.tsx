@@ -273,7 +273,7 @@ export default async function FeedPage({
 
         {/* Carrossel de Banners Regionais */}
         {bannersNormalizados.length > 0 && (
-          <div className="mb-6">
+          <div className="mb-2">
             <RegionalBannerCarousel banners={bannersNormalizados} />
           </div>
         )}

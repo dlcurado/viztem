@@ -16,7 +16,7 @@ export default function FeedHeader({ nomeUsuario, roleUsuario, nomeCondominio, c
   const podePublicar = countAnunciosRestantes > 0 || roleUsuario === 'admin';
 
   return (
-    <div className="flex items-center justify-between py-4 sm:px-4 mb-2">
+    <div className="flex items-center justify-between py-2 sm:px-4 ">
       <div>
         <h2 className="text-xl font-bold text-gray-dark">
           Olá, {primeiroNome}!
