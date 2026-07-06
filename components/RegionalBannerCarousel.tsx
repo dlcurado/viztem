@@ -46,7 +46,7 @@ export default function RegionalBannerCarousel({ banners }: RegionalBannerCarous
       <div className="flex transition-transform duration-500 ease-in-out"
           style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
         {banners.map((banner, index) => (
-          <div key={banner.id} className="w-full flex-shrink-0 h-26 overflow-hidden">
+          <div key={banner.id} className="w-full shrink-0 h-26 overflow-hidden">
             <Link
               href={banner.contact_url || `/anuncio/${banner.id}`} // Link para URL externa ou para o detalhe do anúncio
               target={banner.contact_url ? "_blank" : "_self"}
@@ -54,23 +54,23 @@ export default function RegionalBannerCarousel({ banners }: RegionalBannerCarous
               onClick={() => handleBannerClick(banner.id, banner.contact_url)}
               className="absolute w-full h-full"
             >
-              <div className="absolute w-full h-full text-right overflow-hidden">
+              <div className="absolute w-full h-20 text-right overflow-hidden">
                 {banner.foto_capa ? (
                   <Image
                     src={banner.foto_capa}
                     alt={banner.titulo}
-                    className="absolute rounded-full z-10 ml-2 mt-2 shadow-md shadow-mist-800 h-22"
-                    width={90}
-                    height={100}
+                    className="absolute rounded-tr-full ml-1 mt-1 z-10 h-30"
+                    width={140}
+                    height={120}
                   />
                 ) : (
                   <div className="text-gray-400 text-3xl">
                     {banner.titulo.substring(0, 10)}...
                   </div>
                 )}
-                <div className="absolute right-0 mt-4 ml-10 mr-6 p-1 pr-3 text-right rounded-r-sm bg-primary">
-                  <h1 className="text-gray-100 text-md">{banner.titulo}</h1>
-                  <p className="text-gray-200 line-clamp-2 ml-14 text-sm">{banner.descricao.substring(0, 56)}...</p>
+                <div className="absolute right-0 mt-1 ml-2 mr-1 p-1 pr-3 text-right rounded-r-sm bg-primary">
+                  <h1 className="text-gray-100 text-xl">{banner.titulo}</h1>
+                  <h1 className="text-gray-200 line-clamp-2 ml-30 text-sm">{banner.descricao.substring(0, 56)}...</h1>
                 </div>
               </div>
             </Link>
