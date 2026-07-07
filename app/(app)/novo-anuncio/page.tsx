@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { logEvent } from '@/lib/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import Link from 'next/link'
+import { compressImage } from '@/lib/compressImage'
 
 type Categoria = {
   id: string
@@ -87,7 +88,7 @@ export default function NovoAnuncioPage() {
     const arquivos = Array.from(e.target.files ?? [])
 
     // Máximo 3 fotos no total
-    const novasFotos = [...fotos, ...arquivos].slice(0, 3)
+    const novasFotos = [...arquivos, ...fotos].slice(0, 3)
     setFotos(novasFotos)
     setPreviews(novasFotos.map((f) => URL.createObjectURL(f)))
 
@@ -107,11 +108,9 @@ export default function NovoAnuncioPage() {
     const urls: string[] = []
 
     for (let i = 0; i < fotos.length; i++) {
-      const foto = fotos[i]
+      const foto = await compressImage(fotos[i]);
       const nome = uuidv4(); // Gera um nome único para evitar conflitos
       const extensao = foto.name.split('.').pop()
-      // ✅ Estrutura: {user_id}/{anuncio_id}/{ordem}.{ext}
-      // A política exige que a primeira pasta seja o user_id
       const caminho = `${anuncioId}/${nome}.${extensao}`
 
       const { error } = await supabase.storage

@@ -8,6 +8,7 @@ import DeleteAnuncioButton from '@/components/DeleteAnuncioButton' // Importado 
 import { EventLogger } from '@/components/analytics/EventLogger'
 import { WhatsAppContactButton } from '@/components/analytics/WhatsAppContactButton'
 import { UrlContactButton } from '@/components/analytics/UrlContactButton'
+import CarrosselFotos from '@/components/AnuncioFotoCarousel'
 
 // ─── Tipagem ──────────────────────────────────────────────────
 // Mantendo a tipagem do seu arquivo original, com pequenas correções para o join
@@ -73,27 +74,32 @@ export async function generateMetadata({
 }: {
   params: { id: string }
 }): Promise<Metadata> {
-  const supabase = await createClient()
+  const { createClient: createAnonClient } = await import('@supabase/supabase-js')
+  const supabaseAnon = createAnonClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  //const supabase = await createClient()
   const { id } = await Promise.resolve(params)
 
-  const { data: anuncioRaw, error: anuncioError} = await supabase
+  const { data: anuncioRaw } = await supabaseAnon
     .from('anuncios')
-    .select(`
-      titulo,
-      fotos_anuncio ( url, ordem )
-    `)
+    .select(`titulo, descricao, fotos_anuncio ( url, ordem )`)
     .eq('id', id)
+    .eq('status', 'ativo')
     .single()
 
-  if (!anuncioRaw) return { title: 'Anúncio não encontrado' }
+  if (!anuncioRaw) return { title: 'Anúncio não encontrado | VizTem' }
 
   const fotos = [...(anuncioRaw.fotos_anuncio ?? [])].sort(
-    (a, b) => a.ordem - b.ordem
+    (a: any, b: any) => a.ordem - b.ordem
   )
   const fotoCapa = fotos[0]?.url ?? null
 
   return {
-    title: anuncioRaw.titulo,
+    title: `${anuncioRaw.titulo} | VizTem`,
+    description: anuncioRaw.descricao ?? 'Veja este anúncio no VizTem',
     openGraph: {
       url: `${process.env.NEXT_PUBLIC_APP_URL}/anuncio/${id}`,
       title: anuncioRaw.titulo,
@@ -210,9 +216,6 @@ export default async function AnuncioDetalhePage({
   const isOwner = user?.id === anuncio.autor?.id
   const isAdmin = perfilUsuarioLogado?.role === 'admin'
 
-  const fotosOrdenadas = anuncio.fotos.sort((a, b) => a.ordem - b.ordem)
-  const fotoCapa = fotosOrdenadas[0]?.url ?? '/vercel.svg' // Fallback para imagem padrão
-
   const telAnuncio = anuncio.contact_whatsapp?.replace(/\D/g, '') || ''
   const urlAnuncio = anuncio.contact_url || undefined
   const mensagemWhatsApp = encodeURIComponent(
@@ -266,27 +269,49 @@ export default async function AnuncioDetalhePage({
       </header>
 
       <main className="max-w-5xl mx-auto py-4 sm:px-6 lg:px-8 relative">
-        <div className="bg-white rounded-lg shadow-md overflow-hidden absolute">
+        <div className="rounded-lg shadow-md overflow-hidden absolute w-full">
 
-          {/* Foto */}
-          <div className="relative w-full h-64 sm:h-80 bg-gray-200 flex items-center justify-center">
-            {anuncio.fotos.length > 0 ? (
-              <Image
-                src={fotoCapa}
-                alt={anuncio.titulo}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              />
-            ) : (
-              <div className="text-gray-400 text-6xl">
-                {anuncio.categoria?.icone ?? '📦'}
-              </div>
-            )}
-          </div>
+          <CarrosselFotos
+            fotos={anuncio.fotos}
+            tituloAnuncio={anuncio.titulo}
+          />
 
           {/* Conteúdo */}
-          <div className="p-6 space-y-6">
+          <div className="p-4 space-y-4">
+            {/* Botões de ação */}
+            <div className="absolute top-2 right-2">
+              {/* Botões de ação */}
+              <div className="flex gap-2">
+                <WhatsAppContactButton
+                  user={user}
+                  anuncioId={anuncio.id}
+                  whatsappLink={whatsappLink}
+                  anuncioHasPhone={anuncio.contact_whatsapp ? true : false  }
+                />
+
+                {urlAnuncio && (
+                  <UrlContactButton
+                    user={user}
+                    anuncioId={anuncio.id}
+                    url={urlAnuncio}
+                  />
+                )}
+
+                {/* Compartilhar — visível para todos */}
+                <BotaoCompartilhar
+                  id={anuncio.id}
+                  //titulo={anuncio.titulo}
+                  descricao={anuncio.descricao}
+                  tipo_preco={anuncio.tipo_preco}
+                  preco={anuncio.preco}
+                  ad_whatsapp={anuncio.contact_whatsapp}
+                  ad_url={anuncio.contact_url}
+                  variant="completo"
+                />
+              </div>
+            </div>
+
+            {/* Título e Preço */}
             <div>
               <h1 className="text-2xl font-bold text-gray-900 mb-2">
                 {anuncio.titulo}
@@ -296,6 +321,7 @@ export default async function AnuncioDetalhePage({
               </p>
             </div>
 
+            {/* Descrição */}
             <div>
               <h2 className="text-lg font-semibold text-gray-800 mb-2">Descrição</h2>
               <p className="text-gray-700 whitespace-pre-line">{anuncio.descricao}</p>
@@ -349,39 +375,7 @@ export default async function AnuncioDetalhePage({
             */}
           </div>
         </div>
-        <div className="absolute top-60 right-0">  
-          <div className="bottom-6 right-6">
-            {/* Botões de ação */}
-            <div className="flex gap-4">
-              <WhatsAppContactButton
-                user={user}
-                anuncioId={anuncio.id}
-                whatsappLink={whatsappLink}
-                anuncioHasPhone={anuncio.contact_whatsapp ? true : false  }
-              />
-
-              {urlAnuncio && (
-                <UrlContactButton
-                  user={user}
-                  anuncioId={anuncio.id}
-                  url={urlAnuncio}
-                />
-              )}
-
-              {/* Compartilhar — visível para todos */}
-              <BotaoCompartilhar
-                id={anuncio.id}
-                //titulo={anuncio.titulo}
-                descricao={anuncio.descricao}
-                tipo_preco={anuncio.tipo_preco}
-                preco={anuncio.preco}
-                ad_whatsapp={anuncio.contact_whatsapp}
-                ad_url={anuncio.contact_url}
-                variant="completo"
-              />
-            </div>
-          </div>
-        </div>
+        
       </main>
     </div>
   )

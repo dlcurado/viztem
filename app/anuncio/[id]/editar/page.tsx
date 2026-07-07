@@ -25,6 +25,14 @@ type Perfil = {
 // Para fotos existentes e novas
 type FotoUpload = File | { id: string; url: string; ordem: number; is_deleted?: boolean };
 
+// Substitua o tipo FotoUpload e os estados relacionados
+
+type FotoExistente = {
+  id: string
+  url: string
+  ordem: number
+}
+
 export default function EditarAnuncioPage({ params }: Props) {
   const router = useRouter()
   const supabase = createClient()
@@ -42,7 +50,12 @@ export default function EditarAnuncioPage({ params }: Props) {
   const [anuncioOriginal, setAnuncioOriginal] = useState<AnuncioDetalhado | null>(null);
 
   // Estado para gerenciar fotos (existentes e novas)
-  const [fotosUpload, setFotosUpload] = useState<FotoUpload[]>([]);
+  const [fotos, setFotos] = useState<FotoUpload[]>([]);
+
+  // Remove o estado único 'fotos' e substitui por três estados separados:
+  const [fotosExistentes, setFotosExistentes] = useState<FotoExistente[]>([]) // Fotos já no banco
+  const [fotasNovas, setFotasNovas] = useState<File[]>([])                    // Fotos novas (File[])
+  const [pathsParaDeletar, setPathsParaDeletar] = useState<string[]>([])      // Paths no storage
 
   const [form, setForm] = useState({
     titulo: '',
@@ -189,8 +202,11 @@ export default function EditarAnuncioPage({ params }: Props) {
       })
 
       // Pré-preencher as fotos existentes
-      const fotosExistentes: FotoUpload[] = anuncio.fotos.map(f => ({ ...f, is_deleted: false }));
-      setFotosUpload(fotosExistentes);
+      setFotosExistentes(
+        anuncio.fotos.map(f => ({ id: f.id, url: f.url, ordem: f.ordem }))
+      )
+      setFotasNovas([])
+      setPathsParaDeletar([])
 
       setCarregando(false);
     }
@@ -205,115 +221,130 @@ export default function EditarAnuncioPage({ params }: Props) {
   }
 
   // ─── Selecionar novas fotos ────────────────────────────────────────
-  function handleSelecionarFotos(e: React.ChangeEvent<HTMLInputElement>) {
-    const novosArquivos = Array.from(e.target.files ?? [])
+  function handleInserirFotos(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivos = Array.from(e.target.files ?? [])
+    if (!arquivos.length) return
 
-    // Filtra fotos marcadas para exclusão e adiciona novas
-    const fotosAtuais = fotosUpload.filter(f => !(f as { is_deleted?: boolean }).is_deleted);
-    const novasFotosUpload: FotoUpload[] = [...fotosAtuais, ...novosArquivos].slice(0, 3);
+    setFotasNovas(prev => {
+      const totalAtual = fotosExistentes.length + prev.length
+      const slots = 3 - totalAtual              // Quantas vagas ainda temos
+      if (slots <= 0) return prev               // Já atingiu o limite, ignora
 
-    setFotosUpload(novasFotosUpload);
+      const novas = arquivos.slice(0, slots)    // Respeita o limite de 3
+      return [...novas, ...prev]                // Novas ficam no início (ordem maior)
+    })
     
     e.target.value = '' // Limpar o input
   }
 
-  // ─── Remover foto (marcar para exclusão ou remover da lista de novas) ────────────────────────────────────────────
-  function removerFoto(index: number) {
-    const fotoParaRemover = fotosUpload[index];
-    if (fotoParaRemover && !(fotoParaRemover instanceof File)) {
-      // É uma foto existente, marca para exclusão
-      setFotosUpload(prev => prev.map((f, i) => i === index ? { ...f as { id: string; url: string; ordem: number }, is_deleted: true } : f));
+  // index e tipo para saber se é existente ou nova
+  function handleRemoverFoto(tipo: 'existente' | 'nova', index: number) {
+    if (tipo === 'existente') {
+      const foto = fotosExistentes[index]
+      if (!foto) return
+
+      // Agenda para deletar do storage quando salvar
+      const path = extrairPathDoStorage(foto.url)
+      if (path) {
+        setPathsParaDeletar(prev => [...prev, path])
+      }
+
+      // Remove do estado visual imediatamente
+      setFotosExistentes(prev => prev.filter((_, i) => i !== index))
+
     } else {
-      // É uma foto nova, remove da lista
-      setFotosUpload(prev => prev.filter((_, i) => i !== index));
+      // É uma foto nova (File), remove apenas do estado local
+      // Não precisa deletar do storage pois ainda não foi enviada
+      setFotasNovas(prev => prev.filter((_, i) => i !== index))
     }
   }
 
-  // ─── Fazer upload das fotos no Storage e atualizar DB ───────────────────────
   async function gerenciarFotos(anuncio_id: string): Promise<void> {
-    if (!userId) return;
+    if (!userId) return
 
-    const fotosParaManter: { id?: string; url: string; ordem: number }[] = [];
-    const fotosParaUpload: File[] = [];
-    const fotosParaDeletarDoStorage: string[] = [];
-    const fotosParaDeletarDoDB: string[] = [];
+    // ── 1. Deletar do storage os paths agendados ──────────────────────
+    if (pathsParaDeletar.length > 0) {
+      const { error } = await supabase.storage
+        .from('anuncios')
+        .remove(pathsParaDeletar)
 
-    // Separa as fotos
-    fotosUpload.forEach((foto, index) => {
-      if (foto instanceof File) {
-        fotosParaUpload.push(foto);
-      } else if (foto.is_deleted) {
-        // Extrai o caminho completo da URL para deletar do storage
-        const pathSegments = foto.url.split('/public/anuncios/')[1]; // Pega o que vem depois de /public/anuncios/
-        if (pathSegments) {
-          fotosParaDeletarDoStorage.push(pathSegments);
-        }
-        fotosParaDeletarDoDB.push(foto.id);
+      if (error) {
+        console.error('[gerenciarFotos] Erro ao deletar fotos do storage:', error.message)
       } else {
-        fotosParaManter.push({ id: foto.id, url: foto.url, ordem: index + 1 }); // Reordena
+        console.log(`[gerenciarFotos] ${pathsParaDeletar.length} foto(s) deletada(s) do storage`)
       }
-    });
-
-    console.log('Fotos para manter:', fotosParaManter);
-    console.log('Fotos para upload:', fotosParaUpload);
-    console.log('Fotos para deletar do Storage:', fotosParaDeletarDoStorage);
-    console.log('Fotos para deletar do DB:', fotosParaDeletarDoDB);
-
-    // 1. Deletar fotos do Storage
-    if (fotosParaDeletarDoStorage.length > 0) {
-      const { error } = await supabase.storage.from('anuncios').remove(fotosParaDeletarDoStorage);
-      if (error) console.error('Erro ao deletar fotos do Storage:', error.message);
     }
 
-    // 2. Deletar fotos do DB
-    if (fotosParaDeletarDoDB.length > 0) {
-      const { error } = await supabase.from('fotos_anuncio').delete().in('id', fotosParaDeletarDoDB);
-      if (error) console.error('Erro ao deletar fotos do DB:', error.message);
+    // ── 2. Deletar registros do banco (fotos_anuncio) ─────────────────
+    // Pega os IDs das fotos existentes que foram removidas
+    // (as que estavam no anuncioOriginal mas não estão mais em fotosExistentes)
+    const idsOriginais = anuncioOriginal?.fotos.map(f => f.id) ?? []
+    const idsMantidos = fotosExistentes.map(f => f.id)
+    const idsParaDeletarDoDB = idsOriginais.filter(id => !idsMantidos.includes(id))
+
+    if (idsParaDeletarDoDB.length > 0) {
+      const { error } = await supabase
+        .from('fotos_anuncio')
+        .delete()
+        .in('id', idsParaDeletarDoDB)
+
+      if (error) {
+        console.error('[gerenciarFotos] Erro ao deletar fotos do banco:', error.message)
+      }
     }
 
-    // 3. Upload de novas fotos e atualização de ordem/URL
-    const novasFotosDB: { anuncio_id: string; url: string; ordem: number }[] = [];
-    let ordemAtual = fotosParaManter.length; // Começa a ordem após as fotos mantidas
+    // ── 3. Atualizar ordem das fotos existentes mantidas ─────────────
+    // A ordem final: novas fotos primeiro, existentes depois
+    const totalNovas = fotasNovas.length
 
-    for (const foto of fotosParaUpload) {
-      ordemAtual++;
-      const extensao = foto.name.split('.').pop();
-      const nome = uuidv4(); // Gera um nome único para evitar conflitos
-      const caminho = `${anuncio_id}/${nome}.${extensao}`;
+    for (let i = 0; i < fotosExistentes.length; i++) {
+      const foto = fotosExistentes[i]
+      const novaOrdem = totalNovas + i + 1 // Novas têm ordens menores (1, 2...), existentes vêm depois
+
+      if (foto.ordem !== novaOrdem) {
+        const { error } = await supabase
+          .from('fotos_anuncio')
+          .update({ ordem: novaOrdem })
+          .eq('id', foto.id)
+
+        if (error) {
+          console.error('[gerenciarFotos] Erro ao atualizar ordem:', error.message)
+        } else {
+          console.log(`[gerenciarFotos] Ordem da foto ${foto.id} atualizada para ${novaOrdem}`)
+        }
+      }
+    }
+
+    // ── 4. Upload das novas fotos ─────────────────────────────────────
+    for (let i = 0; i < fotasNovas.length; i++) {
+      const foto = fotasNovas[i]
+      const ordem = i + 1 // Novas ficam no início: ordem 1, 2...
+
+      console.log(`[gerenciarFotos] Enviando foto ${foto.name} na ordem ${ordem}...`)
+
+      const extensao = foto.name.split('.').pop() ?? 'jpg'
+      const nome = uuidv4()
+      const caminho = `${anuncio_id}/${nome}.${extensao}`
 
       const { error: uploadError } = await supabase.storage
         .from('anuncios')
-        .upload(caminho, foto, { upsert: true });
+        .upload(caminho, foto, { upsert: false })
 
       if (uploadError) {
-        console.error(`Erro no upload da foto ${ordemAtual}:`, uploadError.message);
-        continue;
+        console.error(`[gerenciarFotos] Erro no upload da foto ${ordem}:`, uploadError.message)
+        continue
       }
 
       const { data: urlData } = supabase.storage
         .from('anuncios')
-        .getPublicUrl(caminho);
+        .getPublicUrl(caminho)
 
-      novasFotosDB.push({ anuncio_id, url: urlData.publicUrl, ordem: ordemAtual });
-      console.log('Novas fotos para DB:', novasFotosDB);
-    }
+      const { error: insertError } = await supabase
+        .from('fotos_anuncio')
+        .insert({ anuncio_id, url: urlData.publicUrl, ordem })
 
-    // 4. Inserir novas fotos no DB
-    if (novasFotosDB.length > 0) {
-      const { error } = await supabase.from('fotos_anuncio').insert(novasFotosDB);
-      if (error) console.error('Erro ao inserir novas fotos no DB:', error.message);
-    }
-
-    // 5. Atualizar ordem das fotos mantidas (se necessário)
-    // Para este MVP, vamos considerar que a ordem é definida pela posição no array fotosUpload
-    // e que fotosParaManter já tem a ordem correta para o DB.
-    for (let i = 0; i < fotosParaManter.length; i++) {
-      const foto = fotosParaManter[i];
-      if (foto.id && foto.ordem !== (i + 1)) { // Se a ordem mudou
-        const { error } = await supabase.from('fotos_anuncio')
-          .update({ ordem: i + 1 })
-          .eq('id', foto.id);
-        if (error) console.error('Erro ao atualizar ordem da foto:', error.message);
+      if (insertError) {
+        console.error('[gerenciarFotos] Erro ao inserir foto no banco:', insertError.message)
       }
     }
   }
@@ -447,6 +478,13 @@ export default function EditarAnuncioPage({ params }: Props) {
     setExcluindo(false);
   }
 
+  // Adicione essa função auxiliar fora do componente
+  function extrairPathDoStorage(url: string): string | null {
+    // Extrai o path após '/public/anuncios/'
+    const match = url.split('/public/anuncios/')
+    return match.length > 1 ? match[1] : null
+  }
+
 
   // ─── Classes reutilizáveis ───────────────────────────────────
   const inputClass =
@@ -503,33 +541,52 @@ export default function EditarAnuncioPage({ params }: Props) {
             Fotos <span className="text-gray-400 font-normal">(até 3)</span>
           </label>
 
-          <div className="flex gap-3 mt-1">
-            {/* Previews das fotos selecionadas */}
-            {fotosUpload.map((foto, i) => {
-              if ((foto as { is_deleted?: boolean }).is_deleted) return null; // Não mostra fotos marcadas para exclusão
+          <div className="flex gap-3 mt-1 flex-wrap">
 
-              const src = foto instanceof File ? URL.createObjectURL(foto) : (foto as { url: string }).url;
-              return (
-                <div key={i} className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200">
-                  <Image
-                    src={src}
-                    alt={`Foto ${i + 1}`}
-                    fill
-                    className="object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removerFoto(i)}
-                    className="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-black/70"
-                  >
-                    ×
-                  </button>
-                </div>
-              );
-            })}
+            {/* Novas fotos primeiro (File[]) */}
+            {fotasNovas.map((foto, i) => (
+              <div key={`nova-${i}`} className="relative w-24 h-24 rounded-lg overflow-hidden border-2 border-blue-300">
+                <Image
+                  src={URL.createObjectURL(foto)}
+                  alt={`Nova foto ${i + 1}`}
+                  fill
+                  className="object-cover"
+                />
+                {/* Badge "Nova" */}
+                <span className="absolute bottom-1 left-1 bg-blue-600 text-white text-[9px] px-1 rounded">
+                  Nova
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoverFoto('nova', i)}
+                  className="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-black/70"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
 
-            {/* Botão para adicionar foto */}
-            {fotosUpload.filter(f => !(f as { is_deleted?: boolean }).is_deleted).length < 3 && (
+            {/* Fotos existentes depois */}
+            {fotosExistentes.map((foto, i) => (
+              <div key={`existente-${foto.id}`} className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200">
+                <Image
+                  src={foto.url}
+                  alt={`Foto existente ${i + 1}`}
+                  fill
+                  className="object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemoverFoto('existente', i)}
+                  className="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-black/70"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+
+            {/* Botão adicionar (só aparece se tiver slots) */}
+            {fotasNovas.length + fotosExistentes.length < 3 && (
               <button
                 type="button"
                 onClick={() => inputFotoRef.current?.click()}
@@ -547,7 +604,7 @@ export default function EditarAnuncioPage({ params }: Props) {
             accept="image/*"
             multiple
             className="hidden"
-            onChange={handleSelecionarFotos}
+            onChange={handleInserirFotos}
           />
         </div>
 
