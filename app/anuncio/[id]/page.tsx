@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -74,13 +74,14 @@ export async function generateMetadata({
 }: {
   params: { id: string }
 }): Promise<Metadata> {
+  // ← Cliente anônimo, sem cookies, sem sessão
+  // Crawlers do WhatsApp/Facebook não têm cookies
   const { createClient: createAnonClient } = await import('@supabase/supabase-js')
   const supabaseAnon = createAnonClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  //const supabase = await createClient()
   const { id } = await Promise.resolve(params)
 
   const { data: anuncioRaw } = await supabaseAnon
@@ -103,6 +104,7 @@ export async function generateMetadata({
     openGraph: {
       url: `${process.env.NEXT_PUBLIC_APP_URL}/anuncio/${id}`,
       title: anuncioRaw.titulo,
+      description: anuncioRaw.descricao ?? 'Veja este anúncio no VizTem',
       type: 'website',
       locale: 'pt_BR',
       siteName: 'VizTem',
@@ -175,7 +177,7 @@ export default async function AnuncioDetalhePage({
 
   // Se o anúncio não for encontrado, redireciona para o feed (ou 404)
   if (anuncioError || !anuncioRaw) {
-    redirect('/feed') // Ou para uma página 404 personalizada
+    notFound()
   }
 
   // Mapeia para o tipo AnuncioDetalhado
