@@ -182,7 +182,7 @@ export default async function FeedPage({
     }
   }
 
-  console.log('[Feed] Query de anúncios montada:', queryAnunciosFeed)
+  //console.log('[Feed] Query de anúncios montada:', queryAnunciosFeed)
 
   const { data: anuncios, error: anunciosError } = await queryAnunciosFeed
 

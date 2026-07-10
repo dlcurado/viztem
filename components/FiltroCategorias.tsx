@@ -1,6 +1,8 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useState, useTransition } from 'react'
+import FeedSkeleton from './skeletons/FeedSkeleton'
 
 type Categoria = {
   id: string
@@ -19,15 +21,22 @@ export default function FiltroCategorias({
   categoriaAtiva,
 }: Props) {
   const router = useRouter()
+  const [isPending, startTransition] = useTransition()
 
   function handleClick(slug: string | null) {
-    if (slug === null) {
-      router.push('/feed')
-    } else if (slug === categoriaAtiva) {
-      router.push('/feed')
-    } else {
-      router.push(`/feed?categoria=${slug}`)
-    }
+    startTransition(() => {
+      if (slug === null) {
+        router.push('/feed')
+      } else if (slug === categoriaAtiva) {
+        router.push('/feed')
+      } else {
+        router.push(`/feed?categoria=${slug}`)
+      }
+    })
+  }
+
+  if(isPending) {
+    return <FeedSkeleton />
   }
 
   return (
