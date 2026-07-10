@@ -8,7 +8,7 @@ import DeleteAnuncioButton from '@/components/DeleteAnuncioButton' // Importado 
 import { EventLogger } from '@/components/analytics/EventLogger'
 import { WhatsAppContactButton } from '@/components/analytics/WhatsAppContactButton'
 import { UrlContactButton } from '@/components/analytics/UrlContactButton'
-import CarrosselFotos from '@/components/AnuncioFotoCarousel'
+import CarrosselFotos from '@/components/CarrosselFotos'
 
 // ─── Tipagem ──────────────────────────────────────────────────
 // Mantendo a tipagem do seu arquivo original, com pequenas correções para o join
